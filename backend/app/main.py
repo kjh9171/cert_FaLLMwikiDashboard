@@ -6,7 +6,7 @@ from contextlib import asynccontextmanager
 from backend.app.config import settings
 from backend.app.db.init_db import init_database
 from backend.app.api import (
-    finance, receipts, wiki, llm, calendar, todos, health
+    finance, receipts, wiki, llm, calendar, todos, health, users
 )
 
 @asynccontextmanager
@@ -45,6 +45,7 @@ app.include_router(llm.router, prefix=f"{settings.API_V1_STR}/llm", tags=["LLM &
 app.include_router(calendar.router, prefix=f"{settings.API_V1_STR}/calendar", tags=["Calendar"])
 app.include_router(todos.router, prefix=f"{settings.API_V1_STR}", tags=["Todos & Checklist"])
 app.include_router(health.router, prefix=f"{settings.API_V1_STR}", tags=["Health"])
+app.include_router(users.router, prefix=f"{settings.API_V1_STR}", tags=["Users"])
 
 @app.get("/")
 def root():
