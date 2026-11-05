@@ -1,0 +1,13 @@
+fastapi==0.111.0
+uvicorn==0.30.0
+sqlalchemy==2.0.29
+asyncpg==0.29.0
+pgvector==0.3.2
+pydantic==2.7.2
+python-dotenv==1.0.0
+httpx==0.26.0
+python-multipart==0.0.6
+
+# 선택 사항 (OCR / LLM 실행 환경에 맞춰 설치)
+# easyocr==1.7.1
+# paddleocr==2.9.0

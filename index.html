@@ -1,0 +1,771 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>가족 LLM WIKI & 가계부 스마트 대시보드</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Nanum+Gothic:wght@400;700&family=Pretendard:wght@400;600;800&display=swap" rel="stylesheet">
+<style>
+  :root{--cream:#F7F2E9;--card:#FFFFFF;--espresso:#4A3E2C;--border:#E8DEC8;}
+  html,body{margin:0;padding:0;background:var(--cream);color:#3A3428;font-family:'Pretendard','Nanum Gothic',sans-serif;}
+  body{font-feature-settings:"rlig" 1, "calt" 1;}
+  .btn{transition:all .2s;}
+  .btn:active{transform:translateY(1px);}
+  .chip{display:inline-flex;align-items:center;gap:6px;padding:2px 10px;border-radius:999px;font-size:12px;font-weight:700;color:#3A3428;}
+  .ticker{overflow:hidden;white-space:nowrap;}
+  .ticker span{display:inline-block;animation:ticker 20s linear infinite;}
+  @keyframes ticker{0%{transform:translateX(100%);}100%{transform:translateX(-100%);}}
+  .glass{background:rgba(255,255,255,0.6);backdrop-filter:blur(8px);}
+  /* 스크롤바 숨김 */
+  .no-scrollbar::-webkit-scrollbar{display:none;} .no-scrollbar{-ms-overflow-style:none;scrollbar-width:none;}
+</style>
+</head>
+<body class="antialiased min-h-screen">
+
+<!-- ============================ Header ============================ -->
+<header class="bg-[var(--espresso)] text-white px-6 py-4 shadow-lg sticky top-0 z-40">
+  <div class="max-w-7xl mx-auto">
+    <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div class="flex flex-col gap-1">
+        <h1 class="text-xl font-extrabold tracking-tight">가족 LLM WIKI &amp; 가계부 대시보드</h1>
+        <div class="flex items-center gap-3 text-sm font-mono font-bold" id="clock">오후 02:30:00</div>
+        <div id="date" class="text-xs opacity-80">2026년 11월 5일 목요일</div>
+      </div>
+      <div class="flex items-center gap-5 text-xs font-medium opacity-95">
+        <div class="flex items-center gap-2">
+          <span class="text-xs">📍 거실 월패드</span>
+          <span class="w-1 h-1 rounded-full bg-green-400 animate-pulse"></span>
+          <span>온라인</span>
+        </div>
+        <div class="flex flex-col items-end">
+          <div class="font-bold">오늘 18° / 12°</div>
+          <div class="flex items-center gap-1">
+            <span class="text-xl">☀️</span>
+            <span>맑음 · 미세먼지 좋음</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</header>
+
+<!-- ============================ Main ============================ -->
+<main class="max-w-7xl mx-auto px-4 py-8">
+
+  <!-- 날씨 캐러셀 (상단 띠) -->
+  <section class="mb-8 grid grid-cols-1 md:grid-cols-12 gap-6">
+    <div class="md:col-span-4 bg-[var(--card)] rounded-2xl p-5 border border-[var(--border)] shadow-sm">
+      <div class="flex items-center justify-between mb-4">
+        <h2 class="text-sm font-bold uppercase tracking-wider text-espresso">오늘의 날씨</h2>
+        <span class="text-xl">☀️</span>
+      </div>
+      <div class="text-4xl font-extrabold">18°</div>
+      <div class="text-sm text-gray-600 mt-1">맑음 · 미세먼지 좋음 · 습도 45%</div>
+    </div>
+
+    <!-- 날씨 캐러셀 -->
+    <div class="md:col-span-8 bg-[var(--card)] rounded-2xl p-5 border border-[var(--border)] shadow-sm">
+      <h2 class="text-sm font-bold uppercase tracking-wider text-espresso mb-3 flex items-center gap-1">📅 주간 날씨 캐러셀</h2>
+      <div class="flex gap-2 overflow-x-auto no-scrollbar pb-2" id="weatherCarousel">
+        <!-- JS로 생성 -->
+      </div>
+    </div>
+  </section>
+
+  <!-- 메인 그리드: 왼쪽(캘린더/여행/타임라인) + 오른쪽(할일/성장/D-Day) -->
+  <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 mb-10">
+    
+    <!-- LEFT COLUMN -->
+    <div class="lg:col-span-7 space-y-6">
+      
+      <!-- 가족 캘린더 -->
+      <section class="bg-[var(--card)] rounded-2xl p-5 border border-[var(--border)] shadow-sm">
+        <div class="flex items-center justify-between mb-4">
+          <h2 class="text-sm font-bold uppercase tracking-wider text-espresso">📅 가족 캘린더</h2>
+          <div class="flex gap-1">
+            <button id="calPrev" class="btn p-1.5 rounded hover:bg-gray-100 text-gray-500">‹</button>
+            <span id="calMonth" class="font-bold text-sm">2026년 11월</span>
+            <button id="calNext" class="btn p-1.5 rounded hover:bg-gray-100 text-gray-500">›</button>
+          </div>
+        </div>
+        <div class="overflow-x-auto">
+          <table class="w-full text-center text-sm border-collapse">
+            <thead>
+              <tr class="border-b border-[var(--border)]">
+                <th class="py-2 text-[#8A7B63] font-bold">일</th>
+                <th class="py-2 text-[#8A7B63] font-bold">월</th>
+                <th class="py-2 text-[#8A7B63] font-bold">화</th>
+                <th class="py-2 text-[#8A7B63] font-bold">수</th>
+                <th class="py-2 text-[#8A7B63] font-bold">목</th>
+                <th class="py-2 text-[#8A7B63] font-bold">금</th>
+                <th class="py-2 text-[#8A7B63] font-bold">토</th>
+              </tr>
+            </thead>
+            <tbody id="calendarBody" class="text-[#3A3428]"></tbody>
+          </table>
+        </div>
+        <div class="mt-3 flex gap-2 overflow-x-auto no-scrollbar pb-1" id="calLegend">
+          <!-- JS: 범례 -->
+        </div>
+      </section>
+
+      <!-- 여행 준비물 + 타임라인 -->
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <!-- 여행 체크리스트 -->
+        <section class="bg-[var(--card)] rounded-2xl p-5 border border-[var(--border)] shadow-sm">
+          <div class="flex items-center justify-between mb-4">
+            <h2 class="text-sm font-bold uppercase tracking-wider text-espresso">🎒 여행 준비물</h2>
+            <span id="travelProgressText" class="text-xs font-bold bg-amber-100 text-amber-800 px-2 py-0.5 rounded">챙김 0/0</span>
+          </div>
+          <div class="space-y-2" id="travelList">
+            <!-- JS로 생성 -->
+          </div>
+          <div class="mt-4">
+            <div class="flex justify-between text-xs text-gray-600 mb-1">
+              <span>진행률</span>
+              <span id="travelPercent">0%</span>
+            </div>
+            <div class="w-full bg-gray-100 rounded-full h-2">
+              <div id="travelBar" class="bg-amber-500 h-2 rounded-full transition-all duration-500" style="width:0%"></div>
+            </div>
+          </div>
+          <p class="mt-3 text-xs text-gray-500">내일 출발 바닷가 여행 · 체크박스 토글 시 실시간 연산</p>
+        </section>
+
+        <!-- 오늘/내일 타임라인 -->
+        <section class="bg-[var(--card)] rounded-2xl p-5 border border-[var(--border)] shadow-sm">
+          <h2 class="text-sm font-bold uppercase tracking-wider text-espresso mb-4">📍 오늘 / 내일 타임라인</h2>
+          <div class="space-y-3" id="timeline">
+            <!-- JS로 생성 -->
+          </div>
+        </section>
+      </div>
+    </div>
+
+    <!-- RIGHT COLUMN -->
+    <div class="lg:col-span-5 space-y-6">
+      
+      <!-- 구성원별 할 일 -->
+      <section class="bg-[var(--card)] rounded-2xl p-5 border border-[var(--border)] shadow-sm">
+        <div class="flex items-center justify-between mb-4">
+          <h2 class="text-sm font-bold uppercase tracking-wider text-espresso">📋 구성원별 할 일</h2>
+          <span class="text-xs font-bold bg-[#FCE7F3] text-pink-800 px-2 py-0.5 rounded">총 14개</span>
+        </div>
+        <div class="space-y-4" id="todoBoard">
+          <!-- JS: 지훈/민서/공통/장보기 -->
+        </div>
+      </section>
+
+      <!-- 성장 트래커 -->
+      <section class="bg-[var(--card)] rounded-2xl p-5 border border-[var(--border)] shadow-sm">
+        <h2 class="text-sm font-bold uppercase tracking-wider text-espresso mb-4">👶 아동 성장 레벨 트래커</h2>
+        <div class="space-y-5" id="growthCards">
+          <!-- JS: 하늘, 바다 -->
+        </div>
+      </section>
+
+      <!-- D-Day -->
+      <section class="bg-[var(--card)] rounded-2xl p-5 border border-[var(--border)] shadow-sm">
+        <h2 class="text-sm font-bold uppercase tracking-wider text-espresso mb-4">🎉 다가오는 D-Day</h2>
+        <div class="space-y-3" id="ddayList">
+          <!-- JS -->
+        </div>
+      </section>
+
+    </div>
+  </div>
+
+  <!-- ============================ Finance Section ============================ -->
+  <section class="bg-[var(--card)] rounded-2xl p-6 border border-[var(--border)] shadow-sm mb-10">
+    <div class="flex flex-col md:flex-row items-center justify-between gap-4 mb-6">
+      <div>
+        <h2 class="text-sm font-bold uppercase tracking-wider text-espresso">💰 이달의 가계부</h2>
+        <p class="text-xs text-gray-500">수입 · 지출 · 저축 · 예산 사용률</p>
+      </div>
+      <div class="flex gap-2">
+        <button onclick="app.switchFinanceTab('summary')" id="tabSummary" class="btn px-4 py-1.5 rounded-lg bg-[var(--espresso)] text-white text-xs font-bold shadow-sm">요약</button>
+        <button onclick="app.switchFinanceTab('receipt')" id="tabReceipt" class="btn px-4 py-1.5 rounded-lg border border-[var(--border)] text-xs font-bold hover:bg-gray-50">영수증 OCR</button>
+      </div>
+    </div>
+
+    <!-- KPI 카드 -->
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+      <div class="bg-[#FDFBF0] p-4 rounded-xl border border-[var(--border)]">
+        <div class="text-xs text-gray-500 uppercase tracking-wider">총 수입</div>
+        <div class="text-2xl font-extrabold" id="kpiIncome">0 원</div>
+      </div>
+      <div class="bg-[#FDF3F3] p-4 rounded-xl border border-[var(--border)]">
+        <div class="text-xs text-gray-500 uppercase tracking-wider">총 지출</div>
+        <div class="text-2xl font-extrabold text-red-600" id="kpiExpense">0 원</div>
+      </div>
+      <div class="bg-[#F0FDF4] p-4 rounded-xl border border-[var(--border)]">
+        <div class="text-xs text-gray-500 uppercase tracking-wider">순 저축</div>
+        <div class="text-2xl font-extrabold text-green-600" id="kpiSaving">0 원</div>
+      </div>
+      <div class="bg-[#FFF7ED] p-4 rounded-xl border border-[var(--border)]">
+        <div class="text-xs text-gray-500 uppercase tracking-wider">예산 사용률</div>
+        <div class="text-2xl font-extrabold text-amber-600" id="kpiBudget">0%</div>
+        <div class="w-full bg-gray-200 rounded-full h-1.5 mt-2">
+          <div id="budgetBar" class="bg-amber-500 h-1.5 rounded-full transition-all duration-700" style="width:0%"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 차트 -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+      <div class="bg-white p-4 rounded-xl border border-[var(--border)] shadow-sm h-[320px]">
+        <h3 class="text-xs font-bold text-gray-600 mb-3">지출 카테고리 도넛 차트</h3>
+        <canvas id="donutChart" class="w-full h-full"></canvas>
+      </div>
+      <div class="bg-white p-4 rounded-xl border border-[var(--border)] shadow-sm h-[320px]">
+        <h3 class="text-xs font-bold text-gray-600 mb-3">최근 6개월 수입 vs 지출</h3>
+        <canvas id="barChart" class="w-full h-full"></canvas>
+      </div>
+    </div>
+
+    <!-- 영수증 OCR 시뮬레이터 -->
+    <div id="receiptZone" class="hidden border-2 border-dashed border-[var(--border)] rounded-xl p-6 bg-gray-50">
+      <div class="flex flex-col md:flex-row items-center justify-between gap-4 mb-4">
+        <h3 class="text-sm font-bold text-gray-700">🧾 영수증 OCR 스캐너</h3>
+        <div class="flex gap-2">
+          <input type="file" id="receiptFile" accept="image/*" class="block w-0 px-4 py-2 text-sm font-medium text-gray-700 border border-gray-300 rounded-lg cursor-pointer bg-white">
+          <button id="btnScanDemo" class="btn px-4 py-2 bg-[var(--espresso)] text-white text-sm font-bold rounded hover:opacity-90">샘플 스캔</button>
+        </div>
+      </div>
+      <div class="space-y-3 text-sm" id="receiptResult">
+        <!-- JSON 결과 -->
+      </div>
+      <button id="btnAddFinance" class="btn mt-4 w-full bg-green-600 text-white text-sm font-bold rounded hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed" disabled>
+        가계부로 자동 연동 (거래 내역 등록)
+      </button>
+    </div>
+  </section>
+
+  <!-- ============================ Ticker & Dock ============================ -->
+  <div class="mb-10">
+    <!-- Rolling Ticker -->
+    <div class="bg-[var(--espresso)] text-white rounded-xl overflow-hidden shadow-sm">
+      <div class="ticker px-4 py-3" id="stockTicker">
+        <!-- JS로 채움 -->
+      </div>
+      <div class="ticker px-4 py-3" id="stockTicker2">
+        <!-- JS로 채움 -->
+      </div>
+    </div>
+  </div>
+
+  <!-- 미디어 플레이어 캡슐 Dock -->
+  <div class="fixed bottom-6 left-1/2 -translate-x-1/2 z-50">
+    <div class="bg-white/90 backdrop-blur-md border border-[var(--border)] rounded-[999px] px-5 py-3 shadow-xl flex items-center gap-4 w-full max-w-md">
+      <button class="w-9 h-9 rounded-full flex items-center justify-center bg-[var(--espresso)] text-white hover:scale-105 transition" title="이전">⏮</button>
+      <button id="mediaPlay" class="w-10 h-10 rounded-full flex items-center justify-center bg-black text-white hover:scale-105 transition" title="재생/일시정지">▶</button>
+      <button class="w-9 h-9 rounded-full flex items-center justify-center bg-[var(--espresso)] text-white hover:scale-105 transition" title="다음">⏭</button>
+      <div class="flex-1 min-w-0">
+        <div class="truncate text-sm font-bold text-[#3A3428]" id="mediaTitle">Family BGM - 거실 재생목록</div>
+        <div class="truncate text-xs text-gray-500 mt-0.5">아침 잔잔한 피아노</div>
+        <input type="range" id="mediaProgress" class="w-full accent-[var(--espresso)] h-1 mt-2" min="0" max="100" value="0">
+      </div>
+      <div class="w-10 text-right text-xs font-mono text-gray-400" id="mediaTime">0:00</div>
+      <button class="w-8 h-8 rounded-full flex items-center justify-center bg-gray-100 text-gray-600 hover:bg-gray-200 transition" title="볼륨">🔊</button>
+    </div>
+  </div>
+
+</main>
+
+<script>
+/* ========================================================================
+   앱 상태 및 API 기본 URL
+   ======================================================================== */
+const API = "http://localhost:8000/api/v1";
+const COLORS = {
+  하늘: "#FBCFE8", 바다: "#FDE047", 지훈: "#BFDBFE", 민서: "#A7F3D0", 가족: "#E9D5FF"
+};
+let charts = {};
+let financeData = null;
+let receiptParsed = null;
+
+const fmtMoney = (v) => (v || 0).toLocaleString("ko-KR") + " 원";
+const fmtDate = (d) => {
+  const date = new Date(d);
+  return date.toLocaleDateString("ko-KR", {year:"numeric",month:"2-digit",day:"2-digit"});
+};
+
+/* ========================================================================
+   시계 / 날짜
+   ======================================================================== */
+function tick(){
+  const now = new Date();
+  const ampm = now.getHours() >= 12 ? "오후" : "오전";
+  const h = ((now.getHours() % 12) || 12).toString().padStart(2,"0");
+  const m = now.getMinutes().toString().padStart(2,"0");
+  const s = now.getSeconds().toString().padStart(2,"0");
+  document.getElementById("clock").textContent = `${ampm} ${h}:${m}:${s}`;
+  const ymd = now.toLocaleDateString("ko-KR",{weekday:"short",year:"numeric",month:"long",day:"numeric"});
+  document.getElementById("date").textContent = ymd.replace(/ /g," ");
+}
+setInterval(tick, 1000); tick();
+
+/* ========================================================================
+   API 래퍼 (백엔드 미가동 시 모의 데이터 폴백)
+   ======================================================================== */
+async function fetchAPI(path, opts={}){
+  try{
+    const res = await fetch(`${API}${path}`, {...opts, headers:{"Content-Type":"application/json",...opts.headers}});
+    if(!res.ok) throw new Error("backend down");
+    return await res.json();
+  }catch(e){
+    return null;
+  }
+}
+
+/* ========================================================================
+   날씨 캐러셀
+   ======================================================================== */
+const weatherDays = [
+  {day:"오늘", temp:"18°/12°", icon:"☀️", dust:"좋음"},
+  {day:"금", temp:"16°/10°", icon:"⛅", dust:"보통"},
+  {day:"토", temp:"15°/9°", icon:"🌤️", dust:"좋음"},
+  {day:"일", temp:"14°/8°", icon:"🌥️", dust:"보통"},
+  {day:"월", temp:"13°/7°", icon:"🌦️", dust:"나쁨"},
+  {day:"화", temp:"12°/6°", icon:"☁️", dust:"보통"},
+  {day:"수", temp:"11°/5°", icon:"🌧️", dust:"보통"},
+];
+function renderWeather(){
+  const box = document.getElementById("weatherCarousel");
+  box.innerHTML = weatherDays.map(w=>`
+    <div class="min-w-[110px] bg-[#FDFBF0] rounded-xl p-3 border border-[var(--border)] text-center flex flex-col items-center gap-1 shrink-0">
+      <div class="text-xs font-bold text-gray-600 uppercase">${w.day}</div>
+      <div class="text-xl">${w.icon}</div>
+      <div class="text-sm font-bold text-[#3A3428]">${w.temp}</div>
+      <div class="text-[10px] text-gray-500">${w.dust}</div>
+    </div>
+  `).join("");
+}
+
+/* ========================================================================
+   캘린더
+   ======================================================================== */
+let calYear = 2026, calMonth = 10; // 0-based (11월)
+const MOCK_EVENTS = [
+  {title:"수영 수업", date:"2026-11-05", user:"지훈", color:COLORS.지훈},
+  {title:"민서 생일파티 준비", date:"2026-11-07", user:"가족", color:COLORS.가족},
+  {title:"가족 외식", date:"2026-11-10", user:"가족", color:COLORS.가족},
+  {title:"하늘 소풍", date:"2026-11-12", user:"하늘", color:COLORS.하늘},
+  {title:"바다 병원 진료", date:"2026-11-15", user:"바다", color:COLORS.바다},
+  {title:"지훈 휴가", date:"2026-11-20", user:"지훈", color:COLORS.지훈},
+  {title:"민서 피아노 발표회", date:"2026-11-25", user:"민서", color:COLORS.민서},
+];
+function renderCalendar(){
+  const firstDay = new Date(calYear, calMonth, 1).getDay(); // 0=일
+  const daysInMonth = new Date(calYear, calMonth+1, 0).getDate();
+  const monthName = calMonth+1 + "월";
+  document.getElementById("calMonth").textContent = `${calYear}년 ${monthName}`;
+  const tbody = document.getElementById("calendarBody");
+  tbody.innerHTML = "";
+  let day = 1;
+  for(let r=0; r<6; r++){
+    const tr = document.createElement("tr");
+    for(let c=0; c<7; c++){
+      const td = document.createElement("td");
+      td.className = "py-3 border-b border-gray-100 hover:bg-gray-50 rounded-lg cursor-pointer transition relative group";
+      if((r===0 && c<firstDay) || day>daysInMonth){
+        td.className += " text-gray-200";
+      } else {
+        const d = String(day).padStart(2,"0");
+        const full = `${calYear}-${String(calMonth+1).padStart(2,"0")}-${d}`;
+        const evs = MOCK_EVENTS.filter(e=>e.date===full);
+        td.innerHTML = `
+          <div class="text-sm font-bold text-[#3A3428]">${day}</div>
+          <div class="flex justify-center gap-1 mt-1">
+            ${evs.map(e=>`<span class="chip" style="background:${e.color}22;border-color:${e.color};color:#5B4A36;font-size:10px">${e.title}</span>`).join("")}
+          </div>
+        `;
+        td.onclick = () => alert(evs.map(e=>`• ${e.title} (${e.user})`).join("\n") || "일정 없음");
+        day++;
+      }
+      tr.appendChild(td);
+    }
+    tbody.appendChild(tr);
+    if(day>daysInMonth) break;
+  }
+  renderCalLegend();
+}
+function renderCalLegend(){
+  const box = document.getElementById("calLegend");
+  box.innerHTML = Object.entries(COLORS).map(([name,color])=>`
+    <span class="flex items-center gap-1 text-xs">
+      <span class="w-2 h-2 rounded-full" style="background:${color}"></span>
+      ${name}
+    </span>
+  `).join("");
+}
+document.getElementById("calPrev").onclick = ()=>{ calMonth--; if(calMonth<0){calMonth=11; calYear--;} renderCalendar(); };
+document.getElementById("calNext").onclick = ()=>{ calMonth++; if(calMonth>11){calMonth=0; calYear++;} renderCalendar(); };
+
+/* ========================================================================
+   여행 준비물 + 진행률
+   ======================================================================== */
+const TRAVEL_ITEMS = [
+  {name:"수영복", cat:"의류"}, {name:"수건", cat:"위생"}, {name:"세면도구", cat:"위생"},
+  {name:"썬크림", cat:"피부"}, {name:"모자", cat:"의류"}, {name:"간식", cat:"식품"},
+  {name:"물", cat:"식품"}, {name:"갈아입을 옷", cat:"의류"}, {name:"비치볼", cat:"놀이"},
+  {name:"카메라", cat:"전자"}, {name:"보조배터리", cat:"전자"}, {name:"우산", cat:"기타"},
+  {name:"담요", cat:"침구"}, {name:"세면타월", cat:"위생"}, {name:"바지", cat:"의류"},
+  {name:"양말", cat:"의류"}, {name:"속옷", cat:"의류"}, {name:"물티슈", cat:"위생"},
+  {name:"비상약", cat:"의료"}, {name:"현금", cat:"기타"},
+];
+let travelChecked = new Set();
+function renderTravel(){
+  const box = document.getElementById("travelList");
+  box.innerHTML = TRAVEL_ITEMS.map((it,i)=>`
+    <label class="flex items-center gap-3 p-2 rounded-lg hover:bg-gray-50 cursor-pointer transition group">
+      <input type="checkbox" class="w-4 h-4 rounded border-gray-300 text-amber-500 focus:ring-amber-500" ${travelChecked.has(i)?"checked":""} onchange="toggleTravel(${this.checked},${i})">
+      <span class="text-sm ${travelChecked.has(i)?"line-through text-gray-400":"text-gray-700"}">${it.name}</span>
+      <span class="ml-auto text-[10px] chip" style="background:${COLORS.가족}22;border-color:${COLORS.가족};color:#5B4A36">${it.cat}</span>
+    </label>
+  `).join("");
+  const checked = travelChecked.size;
+  const total = TRAVEL_ITEMS.length;
+  document.getElementById("travelProgressText").textContent = `챙김 ${checked}/${total}`;
+  document.getElementById("travelPercent").textContent = `${Math.round(checked/total*100)}%`;
+  document.getElementById("travelBar").style.width = `${Math.round(checked/total*100)}%`;
+}
+function toggleTravel(checked, i){
+  if(checked) travelChecked.add(i); else travelChecked.delete(i);
+  renderTravel();
+}
+
+/* ========================================================================
+   타임라인
+   ======================================================================== */
+const TIMELINE = [
+  {time:"오전 07:30", title:"가족 기상 및 아침 식사", who:"가족"},
+  {time:"오전 08:20", title:"등교 / 출근", who:"지훈, 민서"},
+  {time:"오전 09:00", title:"어린이집 등원", who:"하늘, 바다"},
+  {time:"오후 04:00", title:"수영 수업 (지훈 픽업)", who:"지훈"},
+  {time:"오후 06:00", title:"저녁 식사", who:"가족"},
+  {time:"오후 08:00", title:"목욕 및 잠자리 준비", who:"하늘, 바다"},
+  {time:"오후 09:00", title:"취침", who:"가족"},
+];
+function renderTimeline(){
+  document.getElementById("timeline").innerHTML = TIMELINE.map(t=>`
+    <div class="flex gap-3 items-start">
+      <div class="w-10 text-xs font-mono font-bold text-gray-400">${t.time}</div>
+      <div class="flex-1">
+        <div class="text-sm font-semibold text-[#3A3428]">${t.title}</div>
+        <div class="text-[10px] text-gray-500 mt-0.5">${t.who}</div>
+      </div>
+    </div>
+  `).join("");
+}
+
+/* ========================================================================
+   할 일 보드
+   ======================================================================== */
+const TODO_DATA = {
+  "지훈 할 일": [
+    {task:"수영가방 챙기기", done:false},
+    {task:"수영복 확인", done:true},
+    {task:"간식 준비", done:false},
+    {task:"수건 챙기기", done:false},
+  ],
+  "민서 할 일": [
+    {task:"한글 숙제", done:false},
+    {task:"수학 문제집", done:true},
+    {task:"그림일기", done:false},
+    {task:"피아노 연습", done:false},
+    {task:"책가방 정리", done:false},
+  ],
+  "공통 할 일": [
+    {task:"주말 장보기 목록 작성", done:false},
+  ],
+  "장보기 리스트": [
+    {task:"우유 사기", done:false},
+    {task:"계란 사기", done:false},
+    {task:"채소 사기", done:false},
+    {task:"과일 사기", done:false},
+  ],
+};
+const TODO_USER = {"지훈 할 일":"지훈","민서 할 일":"민서","공통 할 일":"가족","장보기 리스트":"가족"};
+function renderTodos(){
+  const box = document.getElementById("todoBoard");
+  let html = "";
+  for(const [cat, items] of Object.entries(TODO_DATA)){
+    const color = COLORS[TODO_USER[cat]] || COLORS.가족;
+    const done = items.filter(i=>i.done).length;
+    html += `
+      <div class="space-y-2">
+        <div class="flex items-center justify-between mb-1">
+          <span class="chip" style="background:${color}22;border-color:${color};color:#5B4A36">${cat}</span>
+          <span class="text-[10px] text-gray-500">${done}/${items.length}</span>
+        </div>
+        <div class="space-y-1">
+          ${items.map((it,i)=>`
+            <label class="flex items-center gap-2 p-1.5 rounded hover:bg-gray-50 cursor-pointer transition group">
+              <input type="checkbox" class="w-3.5 h-3.5 rounded border-gray-300 text-${cat.includes('지훈')?'blue':cat.includes('민서')?'green':'amber'}-500 focus:ring-${cat.includes('지훈')?'blue':cat.includes('민서')?'green':'amber'}-500" ${it.done?"checked":""} disabled>
+              <span class="text-sm ${it.done?"line-through text-gray-400":"text-gray-700"}">${it.task}</span>
+            </label>
+          `).join("")}
+        </div>
+      </div>
+    `;
+  }
+  box.innerHTML = html;
+}
+
+/* ========================================================================
+   성장 트래커
+   ======================================================================== */
+const GROWTH = [
+  {name:"하늘", lv:6, age:"6세 10개월", color:COLORS.하늘, progress:65},
+  {name:"바다", lv:3, age:"3세 11개월", color:COLORS.바다, progress:40},
+];
+function renderGrowth(){
+  document.getElementById("growthCards").innerHTML = GROWTH.map(g=>`
+    <div class="space-y-3">
+      <div class="flex items-center justify-between">
+        <div class="flex items-center gap-2">
+          <span class="w-2.5 h-2.5 rounded-full" style="background:${g.color}"></span>
+          <span class="font-bold text-[#3A3428]">${g.name} Lv.${g.lv}</span>
+          <span class="text-xs text-gray-500">${g.age}</span>
+        </div>
+        <span class="text-xs font-bold px-2 py-0.5 rounded bg-gray-100 text-gray-600">성장 중</span>
+      </div>
+      <div class="w-full bg-gray-100 rounded-full h-2">
+        <div class="bg-${g.color===COLORS.하늘?'pink':g.color===COLORS.바다?'yellow':'indigo'}-500 h-2 rounded-full transition-all duration-700" style="width:${g.progress}%"></div>
+      </div>
+      <div class="flex justify-between text-xs text-gray-500">
+        <span>목표 달성 ${g.progress}%</span>
+        <span>다음 레벨까지</span>
+      </div>
+    </div>
+  `).join("");
+}
+
+/* ========================================================================
+   D-Day
+   ======================================================================== */
+function renderDDay(){
+  const today = new Date();
+  today.setHours(0,0,0,0);
+  const dd = [
+    {title:"민서 생일", date:"2026-11-10", cat:"생일"},
+    {title:"결혼기념일", date:"2026-11-20", cat:"기념일"},
+    {title:"하늘 생일", date:"2026-06-15", cat:"생일"},
+    {title:"바다 생일", date:"2026-03-22", cat:"생일"},
+  ];
+  const list = dd.map(d=>{
+    const target = new Date(d.date);
+    target.setHours(0,0,0,0);
+    let diff = Math.ceil((target-today)/(1000*60*60*24));
+    if(diff<0){ target.setFullYear(target.getFullYear()+1); diff = Math.ceil((target-today)/(1000*60*60*24)); }
+    return {...d, days:diff};
+  }).sort((a,b)=>a.days-b.days).slice(0,5);
+  document.getElementById("ddayList").innerHTML = list.map(d=>`
+    <div class="flex items-center justify-between p-2 rounded-lg bg-gray-50">
+      <div>
+        <div class="text-sm font-bold text-[#3A3428]">${d.title}</div>
+        <div class="text-[10px] text-gray-500">${d.cat} · ${fmtDate(d.date)}</div>
+      </div>
+      <div class="text-xs font-mono font-bold px-2 py-0.5 rounded bg-[var(--espresso)] text-white">D-${d.days}</div>
+    </div>
+  `).join("");
+}
+
+/* ========================================================================
+   재무 (KPI + 차트)
+   ======================================================================== */
+async function loadFinance(){
+  const data = await fetchAPI("/finance/summary?month=2026-11");
+  financeData = data || {
+    month:"2026-11", total_income:3500000, total_expense:455000, net_savings:3045000,
+    expense_by_category:[{category:"식비",total:165000},{category:"육아/교육",total:80000},{category:"주거/통신",total:150000},{category:"쇼핑/생활",total:280000},{category:"기타",total:30000}],
+    income_by_category:[{category:"급여",total:3500000}], budget_usage_percent:15.2
+  };
+  document.getElementById("kpiIncome").textContent = fmtMoney(financeData.total_income);
+  document.getElementById("kpiExpense").textContent = fmtMoney(financeData.total_expense);
+  document.getElementById("kpiSaving").textContent = fmtMoney(financeData.net_savings);
+  document.getElementById("kpiBudget").textContent = financeData.budget_usage_percent + "%";
+  document.getElementById("budgetBar").style.width = Math.min(100, financeData.budget_usage_percent) + "%";
+
+  renderDonutChart();
+  renderBarChart();
+}
+
+function renderDonutChart(){
+  const ctx = document.getElementById("donutChart").getContext("2d");
+  if(charts.donut) charts.donut.destroy();
+  const labels = financeData.expense_by_category.map(x=>x.category);
+  const values = financeData.expense_by_category.map(x=>x.total);
+  const palette = ["#FCA5A5","#FDE047","#93C5FD","#A7F3D0","#D8B4FE"];
+  charts.donut = new Chart(ctx, {
+    type:"doughnut",
+    data:{labels, datasets:[{data:values, backgroundColor:palette.slice(0, labels.length), borderWidth:0, hoverOffset:24}]},
+    options:{responsive:true, maintainAspectRatio:false, cutout:"70%", plugins:{legend:{position:"bottom", labels:{font:{family:"Pretendard"},padding:20,boxWidth:12}}}, animation:{duration:800}}
+  });
+}
+function renderBarChart(){
+  const ctx = document.getElementById("barChart").getContext("2d");
+  if(charts.bar) charts.bar.destroy();
+  const months = ["6월","7월","8월","9월","10월","11월"];
+  const income = [3200000,3200000,3400000,3400000,3500000,3500000];
+  const expense = [420000,380000,450000,410000,390000,455000];
+  charts.bar = new Chart(ctx, {
+    type:"bar",
+    data:{labels, datasets:[
+      {label:"수입", data:income, backgroundColor:"#93C5FD", borderRadius:4},
+      {label:"지출", data:expense, backgroundColor:"#FCA5A5", borderRadius:4},
+    ]},
+    options:{responsive:true, maintainAspectRatio:false, plugins:{legend:{position:"top", labels:{font:{family:"Pretendard"},padding:20,boxWidth:12}}}, scales:{y:{beginAtZero:true, ticks:{callback:v=> (v/10000).toFixed(0)+"만", font:{family:"Pretendard"}}}, x:{ticks:{font:{family:"Pretendard"}}}}}
+  });
+}
+app.switchFinanceTab = (tab)=>{
+  document.getElementById("tabSummary").className = "btn px-4 py-1.5 rounded-lg border border-[var(--border)] text-xs font-bold "+(tab==="summary"?"bg-[var(--espresso)] text-white":"hover:bg-gray-50");
+  document.getElementById("tabReceipt").className = "btn px-4 py-1.5 rounded-lg border border-[var(--border)] text-xs font-bold "+(tab==="receipt"?"bg-[var(--espresso)] text-white":"hover:bg-gray-50");
+  document.getElementById("receiptZone").classList.toggle("hidden", tab!=="receipt");
+};
+
+/* ========================================================================
+   영수증 OCR 시뮬레이터
+   ======================================================================== */
+document.getElementById("btnScanDemo").onclick = async ()=>{
+  const demoText = `
+샘플 마트
+2026-11-05 14:30
+우유 2,500 x 2 = 5,000
+계란 한판 6,000
+제철 채소 12,000
+총 합계 23,000
+결제: 신한카드
+  `;
+  const res = await fetchAPI("/receipts/scan", {method:"POST", body:JSON.stringify({ocr_text: demoText})});
+  if(res){
+    receiptParsed = res;
+    showReceiptResult(res);
+  } else {
+    // 폴백 모의 결과
+    receiptParsed = {store_name:"샘플 마트", scanned_at:"2026-11-05 14:30", total_amount:23000, payment_method:"신한카드",
+      items:[{item_name:"우유",item_price:2500,quantity:2},{item_name:"계란 한판",item_price:6000,quantity:1},{item_name:"제철 채소",item_price:12000,quantity:1}], suggested_category:"식비"};
+    showReceiptResult(receiptParsed);
+  }
+  document.getElementById("btnAddFinance").disabled = false;
+};
+document.getElementById("receiptFile").onchange = async (e)=>{
+  const file = e.target.files[0];
+  if(!file) return;
+  const form = new FormData();
+  form.append("file", file);
+  try{
+    const res = await fetch(`${API}/receipts/scan`, {method:"POST", body:form});
+    if(!res.ok) throw new Error();
+    const data = await res.json();
+    receiptParsed = data;
+    showReceiptResult(data);
+    document.getElementById("btnAddFinance").disabled = false;
+  }catch(err){
+    alert("백엔드 서버가 필요합니다. '샘플 스캔' 버튼을 사용하세요.");
+  }
+};
+function showReceiptResult(d){
+  const box = document.getElementById("receiptResult");
+  box.innerHTML = `
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
+      <div><span class="text-gray-500 text-xs block">상호명</span><span class="font-bold">${d.store_name}</span></div>
+      <div><span class="text-gray-500 text-xs block">결제 일시</span><span class="font-bold">${d.scanned_at}</span></div>
+      <div><span class="text-gray-500 text-xs block">총 결제 금액</span><span class="font-bold text-red-600">${fmtMoney(d.total_amount)}</span></div>
+      <div><span class="text-gray-500 text-xs block">결제 수단</span><span class="font-bold">${d.payment_method}</span></div>
+      <div><span class="text-gray-500 text-xs block">추천 카테고리</span><span class="chip" style="background:#FDF2F8;border-color:#FBCFE8;color:#9D174D">${d.suggested_category}</span></div>
+    </div>
+    <div class="mt-2">
+      <div class="text-gray-500 text-xs mb-1">품목 리스트</div>
+      <ul class="space-y-1 text-sm">
+        ${d.items.map(it=>`<li class="flex justify-between px-2 py-1 bg-white rounded border border-gray-100"><span>${it.item_name} × ${it.quantity}</span><span class="font-mono text-gray-600">${fmtMoney(it.item_price)}</span></li>`).join("")}
+      </ul>
+    </div>
+  `;
+}
+document.getElementById("btnAddFinance").onclick = async ()=>{
+  if(!receiptParsed) return;
+  const tx = {
+    user_id:5, transaction_type:"EXPENSE", amount: receiptParsed.total_amount,
+    category: receiptParsed.suggested_category, transaction_date: new Date().toISOString().slice(0,10),
+    payment_method: receiptParsed.payment_method, title: receiptParsed.store_name
+  };
+  const res = await fetchAPI("/finance/transactions", {method:"POST", body:JSON.stringify(tx)});
+  if(res){
+    alert("가계부에 등록되었습니다.");
+    loadFinance();
+  } else {
+    alert("백엔드 서버가 실행되어야 실제 등록됩니다. (모의 데이터로 표시만 갱신)");
+  }
+};
+
+/* ========================================================================
+   대시보드 종합 데이터 (캘린더/할일/여행/D-Day 모의 적용)
+   ======================================================================== */
+async function initDashboard(){
+  // 캘린더/할일/여행은 이미 모의 데이터로 렌더링됨
+  renderWeather();
+  renderCalendar();
+  renderTravel();
+  renderTimeline();
+  renderTodos();
+  renderGrowth();
+  renderDDay();
+  await loadFinance();
+}
+
+/* ========================================================================
+   Rolling Ticker
+   ======================================================================== */
+const TICKERS = [
+  {s:"SOX", p:4850, c:+2.3}, {s:"TSMC", p:985, c:-1.1},
+  {s:"마이크론", p:108, c:+4.2}, {s:"엔비디아", p:1240, c:+0.8},
+  {s:"삼성전자", p:68100, c:-0.5}, {s:"SK하이닉스", p:217500, c:+1.5},
+  {s":"소프트뱅크", p:8950, c:+0.3}, {s:"ARM", p:178, c:+3.1},
+];
+function renderTicker(){
+  const base = TICKERS.map(t=>{
+    const sign = c>=0 ? "+" : "";
+    const color = c>=0 ? "text-green-400" : "text-red-400";
+    return `<span class="px-4">${t.s} ${t.p.toLocaleString()} <span class="${color}">${sign}${c.toFixed(1)}%</span> · </span>`;
+  }).join("");
+  const el1 = document.getElementById("stockTicker");
+  const el2 = document.getElementById("stockTicker2");
+  el1.innerHTML = base;
+  el2.innerHTML = base;
+}
+
+/* ========================================================================
+   미디어 도크
+   ======================================================================== */
+let mediaPlaying = false;
+let mediaTime = 0;
+const mediaPlayBtn = document.getElementById("mediaPlay");
+mediaPlayBtn.onclick = ()=>{
+  mediaPlaying = !mediaPlaying;
+  mediaPlayBtn.innerHTML = mediaPlaying ? "⏸" : "▶";
+};
+setInterval(()=>{
+  if(mediaPlaying){
+    mediaTime += 1;
+    if(mediaTime > 240) mediaTime = 0;
+    const m = Math.floor(mediaTime/60).toString().padStart(2,"0");
+    const s = (mediaTime%60).toString().padStart(2,"0");
+    document.getElementById("mediaTime").textContent = `${m}:${s}`;
+    document.getElementById("mediaProgress").value = (mediaTime/240)*100;
+  }
+}, 1000);
+
+/* ========================================================================
+   부트
+   ======================================================================== */
+window.addEventListener("DOMContentLoaded", ()=>{
+  renderTicker();
+  initDashboard();
+});
+</script>
+</body>
+</html>

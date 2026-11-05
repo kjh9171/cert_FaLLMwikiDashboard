@@ -1,10 +1,14 @@
 fastapi>=0.110.0
 uvicorn[standard]>=0.28.0
 pydantic>=2.6.0
-pydantic-settings>=2.2.0
-sqlalchemy>=2.0.28
-psycopg[binary]>=3.1.0
-python-multipart>=0.0.9
+sqlalchemy[asyncio]>=2.0.28
+asyncpg>=0.29.0
+greenlet>=3.0.0
+pgvector>=0.3.2
+python-dotenv>=1.0.0
 httpx>=0.27.0
-aiofiles>=23.2.1
+python-multipart>=0.0.9
 
+# 선택 사항 (OCR / 임베딩 실행 환경에 맞춰 설치)
+# easyocr>=1.7.1
+# paddleocr>=2.9.0
