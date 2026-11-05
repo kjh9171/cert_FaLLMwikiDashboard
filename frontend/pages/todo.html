@@ -27,11 +27,25 @@
 </header>
 
 <main class="app-main fade-in">
-  <section class="card">
-    <div class="card-title">내 할일 목록</div>
-    <div id="todo-list" class="item-list"></div>
-    <div id="empty-todo" class="empty-state">사용자를 선택하면 할일이 표시됩니다.</div>
-  </section>
+  <!-- 사용자 미선택 안내 -->
+  <div id="no-user-hint" style="display:none;">
+    <section class="card">
+      <div class="empty-state" style="padding:3rem;">
+        <div style="font-size:2rem; margin-bottom:1rem;">✅</div>
+        <div class="card-title" style="margin-bottom:0.5rem;">사용자를 선택해 주세요</div>
+        <p style="color:#718096;">상단 드롭다운에서 가족 구성원을 선택하면, 해당 사용자의 할일만 표시됩니다.</p>
+      </div>
+    </section>
+  </div>
+
+  <!-- 사용자 선택 후 내용 -->
+  <div id="user-content" style="display:none;">
+    <section class="card">
+      <div class="card-title">내 할일 목록</div>
+      <div id="todo-list" class="item-list"></div>
+      <div id="empty-todo" class="empty-state">등록된 할일이 없습니다.</div>
+    </section>
+  </div>
 </main>
 
 <!-- 할일 등록 모달 -->
@@ -98,6 +112,8 @@
 const memberSelect = document.getElementById('member-select');
 const todoList = document.getElementById('todo-list');
 const emptyTodo = document.getElementById('empty-todo');
+const noUserHint = document.getElementById('no-user-hint');
+const userContent = document.getElementById('user-content');
 let currentUserId = localStorage.getItem('selectedUserId') || '';
 
 async function init() {
@@ -105,17 +121,27 @@ async function init() {
   await loadUsers();
   if (currentUserId) {
     memberSelect.value = currentUserId;
-    await loadTodos(currentUserId);
+    showUserContent(currentUserId);
+  } else {
+    showNoUserHint();
   }
   memberSelect.addEventListener('change', (e) => {
     currentUserId = e.target.value;
     localStorage.setItem('selectedUserId', currentUserId);
-    if (currentUserId) loadTodos(currentUserId);
-    else {
-      todoList.innerHTML = '';
-      emptyTodo.style.display = 'block';
-    }
+    if (currentUserId) showUserContent(currentUserId);
+    else showNoUserHint();
   });
+}
+
+function showNoUserHint() {
+  noUserHint.style.display = 'block';
+  userContent.style.display = 'none';
+}
+
+function showUserContent(userId) {
+  noUserHint.style.display = 'none';
+  userContent.style.display = 'block';
+  loadTodos(userId);
 }
 
 async function loadUsers() {
@@ -128,6 +154,7 @@ async function loadUsers() {
       o.textContent = `${u.name} (${u.role})`;
       memberSelect.appendChild(o);
     });
+    if (currentUserId) memberSelect.value = currentUserId;
   } catch (e) { console.warn(e); }
 }
 
@@ -199,7 +226,10 @@ async function handleUserForm(e) {
     closeModal('user-modal');
     document.getElementById('user-form').reset();
     await loadUsers();
-    if (currentUserId) await loadTodos(currentUserId);
+    currentUserId = payload.user_id;
+    memberSelect.value = currentUserId;
+    localStorage.setItem('selectedUserId', currentUserId);
+    showUserContent(currentUserId);
     alert('사용자가 등록되었습니다.');
   } catch (err) { alert('등록 실패: ' + err.message); }
 }

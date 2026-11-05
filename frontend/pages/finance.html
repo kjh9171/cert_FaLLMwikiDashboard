@@ -28,51 +28,65 @@
 </header>
 
 <main class="app-main fade-in">
-  <!-- KPI -->
-  <section class="card" style="margin-bottom:1.5rem;">
-    <div class="grid-3">
-      <div class="card kpi-card">
-        <div class="kpi-label">총 수입</div>
-        <div class="kpi-value" id="kpi-income" style="color:#4299E1;">₩ 0</div>
+  <!-- 사용자 미선택 안내 -->
+  <div id="no-user-hint" style="display:none;">
+    <section class="card">
+      <div class="empty-state" style="padding:3rem;">
+        <div style="font-size:2rem; margin-bottom:1rem;">💰</div>
+        <div class="card-title" style="margin-bottom:0.5rem;">사용자를 선택해 주세요</div>
+        <p style="color:#718096;">상단 드롭다운에서 가족 구성원을 선택하면, 해당 사용자의 수입·지출 내역만 표시됩니다.</p>
       </div>
-      <div class="card kpi-card">
-        <div class="kpi-label">총 지출</div>
-        <div class="kpi-value" id="kpi-expense" style="color:#FC8181;">₩ 0</div>
-      </div>
-      <div class="card kpi-card">
-        <div class="kpi-label">순 저축</div>
-        <div class="kpi-value" id="kpi-savings" style="color:#48BB78;">₩ 0</div>
-      </div>
-    </div>
-  </section>
+    </section>
+  </div>
 
-  <!-- 차트 + 테이블 -->
-  <section class="card" style="display:flex; flex-direction:column; gap:1rem;">
-    <div style="display:flex; justify-content:space-between; align-items:center;">
-      <div class="card-title">카테고리별 지출</div>
-      <div id="no-chart" class="empty-state" style="padding:0; font-size:0.85rem;">지출 데이터가 없습니다.</div>
-    </div>
-    <div class="chart-wrap" id="chart-container" style="display:none;">
-      <canvas id="financeChart"></canvas>
-    </div>
+  <!-- 사용자 선택 후 내용 -->
+  <div id="user-content" style="display:none;">
+    <!-- KPI -->
+    <section class="card" style="margin-bottom:1.5rem;">
+      <div class="grid-3">
+        <div class="card kpi-card">
+          <div class="kpi-label">총 수입</div>
+          <div class="kpi-value" id="kpi-income" style="color:#4299E1;">₩ 0</div>
+        </div>
+        <div class="card kpi-card">
+          <div class="kpi-label">총 지출</div>
+          <div class="kpi-value" id="kpi-expense" style="color:#FC8181;">₩ 0</div>
+        </div>
+        <div class="card kpi-card">
+          <div class="kpi-label">순 저축</div>
+          <div class="kpi-value" id="kpi-savings" style="color:#48BB78;">₩ 0</div>
+        </div>
+      </div>
+    </section>
 
-    <div class="card-title" style="margin-top:0.5rem;">거래 내역</div>
-    <div class="table-wrap">
-      <table>
-        <thead>
-          <tr>
-            <th style="width:130px;">날짜</th>
-            <th style="width:80px;">구분</th>
-            <th>항목</th>
-            <th style="width:120px;">카테고리</th>
-            <th style="width:130px; text-align:right;">금액</th>
-            <th style="width:80px; text-align:center;">관리</th>
-          </tr>
-        </thead>
-        <tbody id="finance-table"></tbody>
-      </table>
-    </div>
-  </section>
+    <!-- 차트 + 테이블 -->
+    <section class="card" style="display:flex; flex-direction:column; gap:1rem;">
+      <div style="display:flex; justify-content:space-between; align-items:center;">
+        <div class="card-title">카테고리별 지출</div>
+        <div id="no-chart" class="empty-state" style="padding:0; font-size:0.85rem;">지출 데이터가 없습니다.</div>
+      </div>
+      <div class="chart-wrap" id="chart-container" style="display:none;">
+        <canvas id="financeChart"></canvas>
+      </div>
+
+      <div class="card-title" style="margin-top:0.5rem;">거래 내역</div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th style="width:130px;">날짜</th>
+              <th style="width:80px;">구분</th>
+              <th>항목</th>
+              <th style="width:120px;">카테고리</th>
+              <th style="width:130px; text-align:right;">금액</th>
+              <th style="width:80px; text-align:center;">관리</th>
+            </tr>
+          </thead>
+          <tbody id="finance-table"></tbody>
+        </table>
+      </div>
+    </section>
+  </div>
 </main>
 
 <!-- 거래 등록 모달 -->
@@ -172,23 +186,35 @@ const financeTable = document.getElementById('finance-table');
 let chart = null;
 let currentUserId = localStorage.getItem('selectedUserId') || '';
 
+const noUserHint = document.getElementById('no-user-hint');
+const userContent = document.getElementById('user-content');
+
 async function init() {
   await checkBackend();
   await loadUsers();
   if (currentUserId) {
     memberSelect.value = currentUserId;
-    await loadFinance(currentUserId);
+    showUserContent(currentUserId);
+  } else {
+    showNoUserHint();
   }
   memberSelect.addEventListener('change', (e) => {
     currentUserId = e.target.value;
     localStorage.setItem('selectedUserId', currentUserId);
-    if (currentUserId) loadFinance(currentUserId);
-    else {
-      financeTable.innerHTML = '';
-      updateKPIs(0, 0, 0);
-      if (chart) chart.destroy();
-    }
+    if (currentUserId) showUserContent(currentUserId);
+    else showNoUserHint();
   });
+}
+
+function showNoUserHint() {
+  noUserHint.style.display = 'block';
+  userContent.style.display = 'none';
+}
+
+function showUserContent(userId) {
+  noUserHint.style.display = 'none';
+  userContent.style.display = 'block';
+  loadFinance(userId);
 }
 
 async function loadUsers() {
@@ -201,6 +227,7 @@ async function loadUsers() {
       o.textContent = `${u.name} (${u.role})`;
       memberSelect.appendChild(o);
     });
+    if (currentUserId) memberSelect.value = currentUserId;
   } catch (e) { console.warn(e); }
 }
 
@@ -216,7 +243,6 @@ function renderFinance(txs) {
   const expense = txs.filter(t => t.type === 'EXPENSE').reduce((a,b) => a + b.amount, 0);
   updateKPIs(income, expense, income - expense);
 
-  // 테이블
   financeTable.innerHTML = '';
   if (txs.length === 0) {
     financeTable.innerHTML = '<tr><td colspan="6" class="empty-state" style="padding:2rem;">거래 내역이 없습니다.</td></tr>';
@@ -236,7 +262,6 @@ function renderFinance(txs) {
     });
   }
 
-  // 차트
   updateChart(txs);
 }
 
@@ -324,7 +349,10 @@ async function handleUserForm(e) {
     closeModal('user-modal');
     document.getElementById('user-form').reset();
     await loadUsers();
-    if (currentUserId) await loadFinance(currentUserId);
+    currentUserId = payload.user_id;
+    memberSelect.value = currentUserId;
+    localStorage.setItem('selectedUserId', currentUserId);
+    showUserContent(currentUserId);
     alert('사용자가 등록되었습니다.');
   } catch (err) { alert('등록 실패: ' + err.message); }
 }

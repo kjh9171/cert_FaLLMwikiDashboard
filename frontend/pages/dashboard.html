@@ -27,49 +27,61 @@
 </header>
 
 <main class="app-main fade-in">
-  <!-- 현재 사용자 카드 -->
-  <section class="card" style="margin-bottom:1.5rem;">
-    <div style="display:flex; align-items:center; gap:1rem; margin-bottom:1rem;">
-      <div id="user-avatar" class="user-avatar" style="background:#CBD5E0">?</div>
-      <div>
-        <h2 id="user-name" style="margin:0; font-size:1.25rem; color:#1A202C;">사용자를 선택하세요</h2>
-        <p id="user-role" style="margin:0; font-size:0.85rem; color:#718096;"></p>
+  <!-- 사용자 미선택 안내 -->
+  <div id="no-user-hint" style="display:none;">
+    <section class="card">
+      <div class="empty-state" style="padding:3rem;">
+        <div style="font-size:2rem; margin-bottom:1rem;">👤</div>
+        <div class="card-title" style="margin-bottom:0.5rem;">사용자를 선택해 주세요</div>
+        <p style="color:#718096;">상단 드롭다운에서 가족 구성원을 선택하면, 해당 사용자의 일정 · 할일 · 가계부 요약이 표시됩니다.</p>
       </div>
-    </div>
-    <div class="grid-3">
-      <div class="card kpi-card">
-        <div class="kpi-label">오늘 일정</div>
-        <div class="kpi-value" id="kpi-schedule">0</div>
-      </div>
-      <div class="card kpi-card">
-        <div class="kpi-label">남은 할일</div>
-        <div class="kpi-value" id="kpi-todo">0</div>
-      </div>
-      <div class="card kpi-card">
-        <div class="kpi-label">이달 순 저축</div>
-        <div class="kpi-value" id="kpi-savings">₩ 0</div>
-      </div>
-    </div>
-  </section>
+    </section>
+  </div>
 
-  <!-- 빠른 이동 -->
-  <section class="card">
-    <div class="card-title">빠른 이동</div>
-    <div class="grid-3">
-      <a href="schedule.html" class="card fade-in" style="text-decoration:none; height:120px; display:flex; align-items:center; justify-content:center; font-size:1.1rem; font-weight:700; color:#4299E1; border:2px dashed #CBD5E0;">
-        📅 내 일정 관리
-      </a>
-      <a href="todo.html" class="card fade-in" style="text-decoration:none; height:120px; display:flex; align-items:center; justify-content:center; font-size:1.1rem; font-weight:700; color:#48BB78; border:2px dashed #CBD5E0;">
-        ✅ 내 할일 관리
-      </a>
-      <a href="finance.html" class="card fade-in" style="text-decoration:none; height:120px; display:flex; align-items:center; justify-content:center; font-size:1.1rem; font-weight:700; color:#F6AD55; border:2px dashed #CBD5E0;">
-        💰 내 가계부 관리
-      </a>
-    </div>
-  </section>
+  <!-- 선택된 사용자 대시보드 -->
+  <div id="user-dashboard" style="display:none;">
+    <section class="card" style="margin-bottom:1.5rem;">
+      <div style="display:flex; align-items:center; gap:1rem; margin-bottom:1rem;">
+        <div id="user-avatar" class="user-avatar" style="background:#CBD5E0">?</div>
+        <div>
+          <h2 id="user-name" style="margin:0; font-size:1.25rem; color:#1A202C;"></h2>
+          <p id="user-role" style="margin:0; font-size:0.85rem; color:#718096;"></p>
+        </div>
+      </div>
+      <div class="grid-3">
+        <div class="card kpi-card">
+          <div class="kpi-label">오늘 일정</div>
+          <div class="kpi-value" id="kpi-schedule">0</div>
+        </div>
+        <div class="card kpi-card">
+          <div class="kpi-label">남은 할일</div>
+          <div class="kpi-value" id="kpi-todo">0</div>
+        </div>
+        <div class="card kpi-card">
+          <div class="kpi-label">이달 순 저축</div>
+          <div class="kpi-value" id="kpi-savings">₩ 0</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="card">
+      <div class="card-title">빠른 이동</div>
+      <div class="grid-3">
+        <a href="schedule.html" class="card fade-in" style="text-decoration:none; height:120px; display:flex; align-items:center; justify-content:center; font-size:1.1rem; font-weight:700; color:#4299E1; border:2px dashed #CBD5E0;">
+          📅 내 일정 관리
+        </a>
+        <a href="todo.html" class="card fade-in" style="text-decoration:none; height:120px; display:flex; align-items:center; justify-content:center; font-size:1.1rem; font-weight:700; color:#48BB78; border:2px dashed #CBD5E0;">
+          ✅ 내 할일 관리
+        </a>
+        <a href="finance.html" class="card fade-in" style="text-decoration:none; height:120px; display:flex; align-items:center; justify-content:center; font-size:1.1rem; font-weight:700; color:#F6AD55; border:2px dashed #CBD5E0;">
+          💰 내 가계부 관리
+        </a>
+      </div>
+    </section>
+  </div>
 </main>
 
-<!-- 사용자 등록 모달 (홈과 동일) -->
+<!-- 사용자 등록 모달 -->
 <div id="user-modal" class="modal-overlay">
   <div class="modal">
     <div class="modal-title">👤 가족 구성원 등록</div>
@@ -115,24 +127,39 @@
 <script src="../assets/js/api.js"></script>
 <script>
 const memberSelect = document.getElementById('member-select');
-const selectedUserId = localStorage.getItem('selectedUserId') || '';
+const noUserHint = document.getElementById('no-user-hint');
+const userDashboard = document.getElementById('user-dashboard');
+let selectedUserId = localStorage.getItem('selectedUserId') || '';
 
 async function init() {
   await checkBackend();
   await loadUsers();
-
   if (selectedUserId) {
     memberSelect.value = selectedUserId;
-    await loadDashboard(selectedUserId);
+    showUserDashboard(selectedUserId);
+  } else {
+    showNoUserHint();
   }
-
   memberSelect.addEventListener('change', (e) => {
     const id = e.target.value;
     if (id) {
       localStorage.setItem('selectedUserId', id);
-      loadDashboard(id);
+      showUserDashboard(id);
+    } else {
+      showNoUserHint();
     }
   });
+}
+
+function showNoUserHint() {
+  noUserHint.style.display = 'block';
+  userDashboard.style.display = 'none';
+}
+
+function showUserDashboard(userId) {
+  noUserHint.style.display = 'none';
+  userDashboard.style.display = 'block';
+  loadDashboard(userId);
 }
 
 async function loadUsers() {
@@ -145,6 +172,7 @@ async function loadUsers() {
       o.textContent = `${u.name} (${u.role})`;
       memberSelect.appendChild(o);
     });
+    if (selectedUserId) memberSelect.value = selectedUserId;
   } catch (e) { console.warn('loadUsers failed', e); }
 }
 
@@ -188,6 +216,9 @@ async function handleUserForm(e) {
     closeModal('user-modal');
     document.getElementById('user-form').reset();
     await loadUsers();
+    selectedUserId = payload.user_id;
+    memberSelect.value = payload.user_id;
+    showUserDashboard(payload.userId || payload.user_id);
     alert('사용자가 등록되었습니다.');
   } catch (err) {
     alert('등록 실패: ' + err.message);

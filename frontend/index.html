@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>가족 LLM WIKI 대시보드 - 사용자 선택</title>
+<title>가족 LLM WIKI 대시보드 - 가족 구성원 선택</title>
 <link rel="stylesheet" href="../assets/css/style.css">
 </head>
 <body>
@@ -15,107 +15,66 @@
       </div>
       <span id="backend-status" class="backend-status bg-amber-100 text-amber-800">연결 중...</span>
     </div>
-    <div class="user-selector">
-      <label>가족 구성원 선택</label>
-      <select id="member-select">
-        <option value="">사용자를 선택하세요</option>
-      </select>
-      <button class="btn-primary" onclick="openModal('user-modal')">+ 사용자 등록</button>
-    </div>
   </div>
 </header>
 
 <main class="app-main fade-in">
-  <section class="card" style="margin-top: 1.5rem;">
-    <div class="card-title">가족 구성원</div>
-    <p class="" style="color:#718096; font-size:0.9rem; margin-bottom:1rem;">
-      아래에서 가족 구성원을 선택하면, 해당 사용자의 일정 · 할일 · 가계부만 관리할 수 있습니다.
+  <!-- 사용자 등록 섹션 (항상 노출) -->
+  <section class="card" style="margin-bottom:1.5rem;">
+    <div class="card-title">👤 가족 구성원 등록</div>
+    <p style="color:#718096; font-size:0.9rem; margin-bottom:1rem;">
+      가족 구성원을 먼저 등록해 주세요. 등록 후 이름을 선택하면 해당 사용자의 일정 · 할일 · 가계부를 관리할 수 있습니다.
     </p>
-    <div id="user-list" style="display:grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap:1rem;">
-      <!-- 사용자 카드는 JS로 동적 생성 -->
+    <form id="user-form" onsubmit="handleUserForm(event)" style="display:grid; grid-template-columns: 1fr 1fr 1fr 1fr auto auto; gap:0.75rem; align-items:end;">
+      <input type="text" id="u-id" class="form-input" placeholder="사용자 ID (예: usr_jihoon_01)" required>
+      <input type="text" id="u-name" class="form-input" placeholder="이름 (예: 지훈)" required>
+      <select id="u-role" class="form-input">
+        <option value="ADMIN">관리자</option>
+        <option value="MEMBER">가족구성원</option>
+        <option value="CHILD">자녀</option>
+      </select>
+      <input type="text" id="u-avatar" class="form-input" maxlength="2" placeholder="이니셜">
+      <select id="u-color" class="form-input">
+        <option value="#4299E1">파란색</option>
+        <option value="#48BB78">초록색</option>
+        <option value="#F687B3">분홍색</option>
+        <option value="#ECC94B">노란색</option>
+      </select>
+      <button type="submit" class="btn-add" style="width:100%;">등록하기</button>
+    </form>
+  </section>
+
+  <!-- 등록된 사용자 목록 -->
+  <section class="card">
+    <div class="card-title">📋 등록된 가족 구성원</div>
+    <div id="user-list" style="display:grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap:1rem;">
+      <!-- JS로 동적 생성 -->
     </div>
     <div id="no-users" class="empty-state" style="margin-top:2rem;">
-      등록된 가족 구성원이 없습니다. "+ 사용자 등록" 버튼으로 처음 사용자를 추가해 주세요.
+      등록된 가족 구성원이 없습니다. 위 폼으로 첫 사용자를 추가해 주세요.
     </div>
   </section>
 </main>
 
-<!-- 사용자 등록 모달 -->
-<div id="user-modal" class="modal-overlay">
-  <div class="modal">
-    <div class="modal-title">👤 가족 구성원 등록</div>
-    <form id="user-form" onsubmit="handleUserForm(event)">
-      <div class="form-group">
-        <label class="form-label">사용자 ID</label>
-        <input type="text" id="u-id" class="form-input" placeholder="예: usr_jihoon_01" required>
-      </div>
-      <div class="form-group">
-        <label class="form-label">이름</label>
-        <input type="text" id="u-name" class="form-input" placeholder="예: 지훈" required>
-      </div>
-      <div class="form-group">
-        <label class="form-label">역할</label>
-        <select id="u-role" class="form-input">
-          <option value="ADMIN">관리자</option>
-          <option value="MEMBER">가족구성원</option>
-          <option value="CHILD">자녀</option>
-        </select>
-      </div>
-      <div class="form-group">
-        <label class="form-label">아바타 이니셜</label>
-        <input type="text" id="u-avatar" class="form-input" maxlength="2" placeholder="지">
-      </div>
-      <div class="form-group">
-        <label class="form-label">태그 색상</label>
-        <select id="u-color" class="form-input">
-          <option value="#4299E1">파란색</option>
-          <option value="#48BB78">초록색</option>
-          <option value="#F687B3">분홍색</option>
-          <option value="#ECC94B">노란색</option>
-          <option value="#805AD5">보라색</option>
-        </select>
-      </div>
-      <div class="form-actions">
-        <button type="button" class="btn-cancel" onclick="closeModal('user-modal')">취소</button>
-        <button type="submit" class="btn-save">등록하기</button>
-      </div>
-    </form>
-  </div>
-</div>
-
 <script src="../assets/js/api.js"></script>
 <script>
-const memberSelect = document.getElementById('member-select');
-const userList = document.getElementById('user-list');
-const noUsers = document.getElementById('no-users');
-
 async function init() {
   await checkBackend();
   await loadUsers();
-  memberSelect.addEventListener('change', (e) => {
-    const id = e.target.value;
-    if (id) {
-      localStorage.setItem('selectedUserId', id);
-      location.href = 'pages/dashboard.html';
-    }
-  });
 }
 
 async function loadUsers() {
   try {
     const users = await api('/users');
-    memberSelect.innerHTML = '<option value="">사용자를 선택하세요</option>';
-    userList.innerHTML = '';
-    noUsers.style.display = users.length ? 'none' : 'block';
-
+    const list = document.getElementById('user-list');
+    const empty = document.getElementById('no-users');
+    list.innerHTML = '';
+    if (users.length === 0) {
+      empty.style.display = 'block';
+      return;
+    }
+    empty.style.display = 'none';
     users.forEach(u => {
-      // select 옵션
-      const o = document.createElement('option');
-      o.value = u.user_id;
-      o.textContent = `${u.name} (${u.role})`;
-      memberSelect.appendChild(o);
-
-      // 카드
       const card = document.createElement('div');
       card.className = 'card fade-in';
       card.style.cursor = 'pointer';
@@ -131,12 +90,14 @@ async function loadUsers() {
             <div class="list-item-meta">${u.role} · ${u.user_id}</div>
           </div>
         </div>
+        <div style="text-align:center; margin-top:0.5rem;">
+          <button class="btn-primary" style="width:100%; padding:0.5rem; font-size:0.8rem;" onclick="event.stopPropagation(); selectUser('${u.user_id}')">선택하여 대시보드 이동</button>
+        </div>
       `;
-      userList.appendChild(card);
+      list.appendChild(card);
     });
   } catch (e) {
     console.warn('loadUsers failed', e);
-    noUsers.style.display = 'block';
   }
 }
 
@@ -149,16 +110,20 @@ async function handleUserForm(e) {
     color_code: document.getElementById('u-color').value,
     avatar_initial: document.getElementById('u-avatar').value.trim() || '?'
   };
-  if (!payload.user_id || !payload.name) return alert('ID와 이름을 입력하세요.');
+  if (!payload.user_id || !payload.name) return alert('사용자 ID와 이름을 입력하세요.');
   try {
     await createUser(payload);
-    closeModal('user-modal');
     document.getElementById('user-form').reset();
     await loadUsers();
-    alert('사용자가 등록되었습니다.');
+    alert('사용자가 등록되었습니다. 이름을 클릭하여 대시보드로 이동하세요.');
   } catch (err) {
     alert('등록 실패: ' + err.message);
   }
+}
+
+async function selectUser(userId) {
+  localStorage.setItem('selectedUserId', userId);
+  location.href = 'pages/dashboard.html';
 }
 
 init();
