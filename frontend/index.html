@@ -1,536 +1,167 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>가족 LLM WIKI 대시보드 - 내 일정 & 가계부</title>
-    
-    <!-- Tailwind CSS CDN -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Chart.js CDN -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    colors: {
-                        brand: { bg: '#F5F2EC', card: '#FFFFFF', text: '#2D3748', muted: '#718096' },
-                        jihoon: { bg: '#EBF8FF', text: '#2B6CB0', border: '#63B3ED' },
-                        minseo: { bg: '#F0FFF4', text: '#276749', border: '#68D391' },
-                    }
-                }
-            }
-        }
-    </script>
-    <style>
-        body { background-color: #F5F2EC; color: #2D3748; font-family: -apple-system, BlinkMacSystemFont, "Pretendard", "Segoe UI", Roboto, sans-serif; overflow-x: hidden; }
-        .fade-in { animation: fadeIn 0.3s ease-in; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-        .empty-state { opacity: 0.5; font-style: italic; text-align: center; padding: 2rem; color: #9CA3AF; }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>가족 LLM WIKI 대시보드 - 사용자 선택</title>
+<link rel="stylesheet" href="../assets/css/style.css">
 </head>
-<body class="min-h-screen flex flex-col">
-
-    <!-- Header -->
-    <header class="bg-white border-b border-gray-200 sticky top-0 z-40 shadow-sm px-4 py-3">
-        <div class="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-3">
-            <div class="flex items-center gap-3">
-                <span class="text-2xl font-bold text-gray-800">🏡 가족 LLM WIKI 대시보드</span>
-                <span id="backend-status" class="bg-amber-100 text-amber-800 text-xs px-2.5 py-1 rounded-full font-semibold">
-                    Backend 확인 중...
-                </span>
-            </div>
-
-            <!-- 사용자 선택 영역 -->
-            <div class="flex items-center gap-3 bg-gray-100 p-2 rounded-xl border border-gray-200">
-                <label class="text-[10px] text-gray-500 font-bold uppercase mr-1">내 계정</label>
-                <select id="member-select" class="bg-white text-xs font-semibold px-2.5 py-1.5 rounded border border-gray-200 focus:outline-none focus:border-blue-500 cursor-pointer min-w-[140px]">
-                    <option value="">사용자 선택...</option>
-                </select>
-                <button onclick="openUserModal()" class="bg-blue-600 hover:bg-blue-700 text-white text-xs px-2 py-1.5 rounded font-bold shadow-xs">+ 사용자 등록</button>
-            </div>
-
-            <nav class="hidden md:flex items-center bg-gray-100 p-1 rounded-xl gap-1">
-                <button onclick="switchTab('dashboard')" id="tab-dashboard" class="tab-btn active px-3 py-1.5 text-xs rounded-lg transition-all">📌 내 대시보드</button>
-                <button onclick="switchTab('schedule')" id="tab-schedule" class="tab-btn px-3 py-1.5 text-xs rounded-lg transition-all text-gray-600 hover:text-gray-900">📅 내 일정</button>
-                <button onclick="switchTab('todo')" id="tab-todo" class="tab-btn px-3 py-1.5 text-xs rounded-lg transition-all text-gray-600 hover:text-gray-900">✅ 내 할일</button>
-                <button onclick="switchTab('finance')" id="tab-finance" class="tab-btn px-3 py-1.5 text-xs rounded-lg transition-all text-gray-600 hover:text-gray-900">💰 내 가계부</button>
-            </nav>
-        </div>
-    </header>
-
-    <!-- Main -->
-    <main class="max-w-7xl mx-auto w-full px-4 py-6 flex-grow">
-
-        <!-- Tab: Dashboard -->
-        <section id="view-dashboard" class="space-y-6 fade-in">
-            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
-                    <h3 class="text-xs font-bold text-gray-400 uppercase mb-2">선택된 사용자</h3>
-                    <div class="flex items-center gap-3">
-                        <div class="w-12 h-12 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center font-bold text-xl" id="user-avatar">?</div>
-                        <div>
-                            <h2 class="text-lg font-bold text-gray-800" id="user-name">사용자를 선택하세요</h2>
-                            <p class="text-xs text-gray-500" id="user-role"></p>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
-                    <h3 class="text-xs font-bold text-gray-400 uppercase mb-2">오늘의 일정</h3>
-                    <div id="dashboard-schedule" class="space-y-3">
-                        <div class="empty-state">사용자를 선택하면 일정이 표시됩니다.</div>
-                    </div>
-                </div>
-
-                <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
-                    <h3 class="text-xs font-bold text-gray-400 uppercase mb-2">이번 달 가계부 요약</h3>
-                    <div class="space-y-4" id="dashboard-finance">
-                        <div class="empty-state">사용자를 선택하면 가계부가 표시됩니다.</div>
-                    </div>
-                </div>
-            </div>
-        </section>
-
-        <!-- Tab: Schedule -->
-        <section id="view-schedule" class="hidden space-y-6 fade-in">
-            <div class="flex items-center justify-between mb-4">
-                <h2 class="text-lg font-bold text-gray-800">📅 내 일정 관리</h2>
-                <button onclick="openScheduleModal()" class="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-xl font-bold text-xs shadow-sm">+ 일정 추가</button>
-            </div>
-            <div id="schedule-list" class="space-y-3">
-                <div class="empty-state">사용자를 선택하면 일정이 표시됩니다.</div>
-            </div>
-        </section>
-
-        <!-- Tab: Todo -->
-        <section id="view-todo" class="hidden space-y-6 fade-in">
-            <div class="flex items-center justify-between mb-4">
-                <h2 class="text-lg font-bold text-gray-800">✅ 내 할일 관리</h2>
-                <button onclick="openTodoModal()" class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-xl font-bold text-xs shadow-sm">+ 할일 추가</button>
-            </div>
-            <div id="todo-list" class="space-y-3">
-                <div class="empty-state">사용자를 선택하면 할일이 표시됩니다.</div>
-            </div>
-        </section>
-
-        <!-- Tab: Finance -->
-        <section id="view-finance" class="hidden space-y-6 fade-in">
-            <!-- KPI -->
-            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
-                <div class="bg-white p-5 rounded-2xl shadow-sm border border-gray-100">
-                    <div class="text-xs text-gray-500 font-bold">총 수입</div>
-                    <div class="text-2xl font-black text-blue-600" id="kpi-income">₩ 0</div>
-                </div>
-                <div class="bg-white p-5 rounded-2xl shadow-sm border border-gray-100">
-                    <div class="text-xs text-gray-500 font-bold">총 지출</div>
-                    <div class="text-2xl font-black text-red-500" id="kpi-expense">₩ 0</div>
-                </div>
-                <div class="bg-white p-5 rounded-2xl shadow-sm border border-gray-100">
-                    <div class="text-xs text-gray-500 font-bold">순 저축</div>
-                    <div class="text-2xl font-black text-emerald-600" id="kpi-savings">₩ 0</div>
-                </div>
-            </div>
-
-            <!-- Chart + Table -->
-            <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
-                <div class="lg:col-span-5 bg-white p-5 rounded-2xl shadow-sm border border-gray-100">
-                    <h3 class="text-sm font-bold text-gray-800 mb-3">카테고리별 지출</h3>
-                    <div class="h-64"><canvas id="financeChart"></canvas></div>
-                </div>
-                <div class="lg:col-span-7 bg-white p-5 rounded-2xl shadow-sm border border-gray-100 flex flex-col">
-                    <div class="flex items-center justify-between mb-4">
-                        <h3 class="text-sm font-bold text-gray-800">거래 내역</h3>
-                        <button onclick="openFinanceModal()" class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded-lg font-bold text-xs shadow-xs">+ 거래 추가</button>
-                    </div>
-                    <div class="overflow-x-auto">
-                        <table class="w-full text-left text-xs">
-                            <thead class="bg-gray-50">
-                                <tr>
-                                    <th class="p-2">날짜</th>
-                                    <th class="p-2">구분</th>
-                                    <th class="p-2">항목</th>
-                                    <th class="p-2">카테고리</th>
-                                    <th class="p-2 text-right">금액</th>
-                                    <th class="p-2 text-center">관리</th>
-                                </tr>
-                            </thead>
-                            <tbody id="finance-table" class="divide-y divide-gray-100"></tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-        </section>
-    </main>
-
-    <!-- Modals -->
-    
-    <!-- User Modal -->
-    <div id="user-modal" class="fixed inset-0 bg-black/50 hidden items-center justify-center z-50 p-4">
-        <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl">
-            <h3 class="text-base font-bold text-gray-800 mb-4">👤 사용자 등록</h3>
-            <div class="space-y-3">
-                <div><label class="block text-xs font-bold text-gray-700 mb-1">사용자 ID</label><input type="text" id="u-id" class="w-full bg-gray-50 border border-gray-200 rounded-lg p-2 font-mono" placeholder="예: usr_jihoon_01"></div>
-                <div><label class="block text-xs font-bold text-gray-700 mb-1">이름</label><input type="text" id="u-name" class="w-full bg-gray-50 border border-gray-200 rounded-lg p-2" placeholder="예: 지훈"></div>
-                <div><label class="block text-xs font-bold text-gray-700 mb-1">역할</label><select id="u-role" class="w-full bg-gray-50 border border-gray-200 rounded-lg p-2"><option value="ADMIN">관리자</option><option value="MEMBER">가족구성원</option><option value="CHILD">자녀</option></select></div>
-                <div><label class="block text-xs font-bold text-gray-700 mb-1">아바타 이니셜</label><input type="text" id="u-avatar" class="w-full bg-gray-50 border border-gray-200 rounded-lg p-2 text-center font-mono" maxlength="2" placeholder="지"></div>
-                <div><label class="block text-xs font-bold text-gray-700 mb-1">색상</label><select id="u-color" class="w-full bg-gray-50 border border-gray-200 rounded-lg p-2"><option value="#4299E1">파란색</option><option value="#48BB78">초록색</option><option value="#F687B3">분홍색</option><option value="#ECC94B">노란색</option></select></div>
-            </div>
-            <div class="flex justify-end gap-2 pt-4">
-                <button onclick="closeModal('user-modal')" class="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg font-bold text-xs">취소</button>
-                <button onclick="saveUser()" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-bold text-xs">등록하기</button>
-            </div>
-        </div>
+<body>
+<header class="app-header">
+  <div class="header-inner">
+    <div class="header-top">
+      <div class="brand">
+        <span class="brand-title">🏡 가족 LLM WIKI 대시보드</span>
+      </div>
+      <span id="backend-status" class="backend-status bg-amber-100 text-amber-800">연결 중...</span>
     </div>
-
-    <!-- Schedule Modal -->
-    <div id="schedule-modal" class="fixed inset-0 bg-black/50 hidden items-center justify-center z-50 p-4">
-        <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl">
-            <h3 class="text-base font-bold text-gray-800 mb-4">📅 일정 등록</h3>
-            <div class="space-y-3">
-                <div><label class="block text-xs font-bold text-gray-700 mb-1">제목</label><input type="text" id="s-title" class="w-full bg-gray-50 border border-gray-200 rounded-lg p-2"></div>
-                <div class="grid grid-cols-2 gap-3">
-                    <div><label class="block text-xs font-bold text-gray-700 mb-1">시작</label><input type="datetime-local" id="s-start" class="w-full bg-gray-50 border border-gray-200 rounded-lg p-2"></div>
-                    <div><label class="block text-xs font-bold text-gray-700 mb-1">종료</label><input type="datetime-local" id="s-end" class="w-full bg-gray-50 border border-gray-200 rounded-lg p-2"></div>
-                </div>
-                <div><label class="block text-xs font-bold text-gray-700 mb-1">카테고리</label><select id="s-cat" class="w-full bg-gray-50 border border-gray-200 rounded-lg p-2"><option value="개인">개인</option><option value="가족">가족</option><option value="육아">육아</option><option value="건강">건강</option></select></div>
-                <div><label class="block text-xs font-bold text-gray-700 mb-1">색상</label><select id="s-color" class="w-full bg-gray-50 border border-gray-200 rounded-lg p-2"><option value="#63B3ED">파랑</option><option value="#68D391">초록</option><option value="#F6AD55">노랑</option><option value="#D6BCFA">보라</option></select></div>
-                <div><label class="block text-xs font-bold text-gray-700 mb-1">설명</label><input type="text" id="s-desc" class="w-full bg-gray-50 border border-gray-200 rounded-lg p-2"></div>
-            </div>
-            <div class="flex justify-end gap-2 pt-4">
-                <button onclick="closeModal('schedule-modal')" class="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg font-bold text-xs">취소</button>
-                <button onclick="saveSchedule()" class="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-bold text-xs">등록하기</button>
-            </div>
-        </div>
+    <div class="user-selector">
+      <label>가족 구성원 선택</label>
+      <select id="member-select">
+        <option value="">사용자를 선택하세요</option>
+      </select>
+      <button class="btn-primary" onclick="openModal('user-modal')">+ 사용자 등록</button>
     </div>
+  </div>
+</header>
 
-    <!-- Todo Modal -->
-    <div id="todo-modal" class="fixed inset-0 bg-black/50 hidden items-center justify-center z-50 p-4">
-        <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl">
-            <h3 class="text-base font-bold text-gray-800 mb-4">✅ 할일 등록</h3>
-            <div class="space-y-3">
-                <div><label class="block text-xs font-bold text-gray-700 mb-1">할일 내용</label><input type="text" id="t-title" class="w-full bg-gray-50 border border-gray-200 rounded-lg p-2" placeholder="예: 장보기"></div>
-            </div>
-            <div class="flex justify-end gap-2 pt-4">
-                <button onclick="closeModal('todo-modal')" class="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg font-bold text-xs">취소</button>
-                <button onclick="saveTodo()" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-bold text-xs">등록하기</button>
-            </div>
-        </div>
+<main class="app-main fade-in">
+  <section class="card" style="margin-top: 1.5rem;">
+    <div class="card-title">가족 구성원</div>
+    <p class="" style="color:#718096; font-size:0.9rem; margin-bottom:1rem;">
+      아래에서 가족 구성원을 선택하면, 해당 사용자의 일정 · 할일 · 가계부만 관리할 수 있습니다.
+    </p>
+    <div id="user-list" style="display:grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap:1rem;">
+      <!-- 사용자 카드는 JS로 동적 생성 -->
     </div>
-
-    <!-- Finance Modal -->
-    <div id="finance-modal" class="fixed inset-0 bg-black/50 hidden items-center justify-center z-50 p-4">
-        <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl">
-            <h3 class="text-base font-bold text-gray-800 mb-4">💰 거래 등록</h3>
-            <div class="space-y-3">
-                <div><label class="block text-xs font-bold text-gray-700 mb-1">구분</label><select id="f-type" class="w-full bg-gray-50 border border-gray-200 rounded-lg p-2"><option value="EXPENSE">지출 (-)</option><option value="INCOME">수입 (+)</option></select></div>
-                <div><label class="block text-xs font-bold text-gray-700 mb-1">항목명</label><input type="text" id="f-title" class="w-full bg-gray-50 border border-gray-200 rounded-lg p-2" placeholder="예: 마트 장보기"></div>
-                <div><label class="block text-xs font-bold text-gray-700 mb-1">금액 (원)</label><input type="number" id="f-amount" class="w-full bg-gray-50 border border-gray-200 rounded-lg p-2 font-mono" placeholder="35000"></div>
-                <div><label class="block text-xs font-bold text-gray-700 mb-1">카테고리</label><select id="f-cat" class="w-full bg-gray-50 border border-gray-200 rounded-lg p-2"><option value="식비">식비</option><option value="육아/교육">육아/교육</option><option value="쇼핑/생활">쇼핑/생활</option><option value="주거/통신">주거/통신</option><option value="기타">기타</option><option value="월급/수입">월급/수입</option></select></div>
-                <div><label class="block text-xs font-bold text-gray-700 mb-1">결제 수단</label><select id="f-method" class="w-full bg-gray-50 border border-gray-200 rounded-lg p-2"><option value="현대카드">현대카드</option><option value="신한카드">신한카드</option><option value="계좌이체">계좌이체</option><option value="현금">현금</option></select></div>
-            </div>
-            <div class="flex justify-end gap-2 pt-4">
-                <button onclick="closeModal('finance-modal')" class="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg font-bold text-xs">취소</button>
-                <button onclick="saveFinance()" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-bold text-xs">등록하기</button>
-            </div>
-        </div>
+    <div id="no-users" class="empty-state" style="margin-top:2rem;">
+      등록된 가족 구성원이 없습니다. "+ 사용자 등록" 버튼으로 처음 사용자를 추가해 주세요.
     </div>
+  </section>
+</main>
 
-    <script>
-        const API_BASE = window.location.port === '8088' ? '/api/v1' : 'http://localhost:8088/api/v1';
-        let isOnline = false;
-        let selectedUserId = '';
-        let financeChart = null;
+<!-- 사용자 등록 모달 -->
+<div id="user-modal" class="modal-overlay">
+  <div class="modal">
+    <div class="modal-title">👤 가족 구성원 등록</div>
+    <form id="user-form" onsubmit="handleUserForm(event)">
+      <div class="form-group">
+        <label class="form-label">사용자 ID</label>
+        <input type="text" id="u-id" class="form-input" placeholder="예: usr_jihoon_01" required>
+      </div>
+      <div class="form-group">
+        <label class="form-label">이름</label>
+        <input type="text" id="u-name" class="form-input" placeholder="예: 지훈" required>
+      </div>
+      <div class="form-group">
+        <label class="form-label">역할</label>
+        <select id="u-role" class="form-input">
+          <option value="ADMIN">관리자</option>
+          <option value="MEMBER">가족구성원</option>
+          <option value="CHILD">자녀</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">아바타 이니셜</label>
+        <input type="text" id="u-avatar" class="form-input" maxlength="2" placeholder="지">
+      </div>
+      <div class="form-group">
+        <label class="form-label">태그 색상</label>
+        <select id="u-color" class="form-input">
+          <option value="#4299E1">파란색</option>
+          <option value="#48BB78">초록색</option>
+          <option value="#F687B3">분홍색</option>
+          <option value="#ECC94B">노란색</option>
+          <option value="#805AD5">보라색</option>
+        </select>
+      </div>
+      <div class="form-actions">
+        <button type="button" class="btn-cancel" onclick="closeModal('user-modal')">취소</button>
+        <button type="submit" class="btn-save">등록하기</button>
+      </div>
+    </form>
+  </div>
+</div>
 
-        // 상태
-        const state = { users: [], schedules: [], todos: [], transactions: [] };
+<script src="../assets/js/api.js"></script>
+<script>
+const memberSelect = document.getElementById('member-select');
+const userList = document.getElementById('user-list');
+const noUsers = document.getElementById('no-users');
 
-        // 초기화
-        document.addEventListener('DOMContentLoaded', () => {
-            checkBackend();
-            document.getElementById('member-select').addEventListener('change', (e) => {
-                selectedUserId = e.target.value;
-                if (selectedUserId) loadUserData();
-                else clearView();
-            });
-        });
+async function init() {
+  await checkBackend();
+  await loadUsers();
+  memberSelect.addEventListener('change', (e) => {
+    const id = e.target.value;
+    if (id) {
+      localStorage.setItem('selectedUserId', id);
+      location.href = 'pages/dashboard.html';
+    }
+  });
+}
 
-        async function checkBackend() {
-            try {
-                const res = await fetch(`${API_BASE}/health`);
-                if (res.ok) {
-                    isOnline = true;
-                    document.getElementById('backend-status').textContent = 'Backend API Online';
-                    document.getElementById('backend-status').className = 'bg-emerald-50 text-emerald-700 text-xs px-2.5 py-1 rounded-full font-semibold';
-                    loadUsers();
-                }
-            } catch (e) {
-                document.getElementById('backend-status').textContent = 'Offline (Local Mode)';
-            }
-        }
+async function loadUsers() {
+  try {
+    const users = await api('/users');
+    memberSelect.innerHTML = '<option value="">사용자를 선택하세요</option>';
+    userList.innerHTML = '';
+    noUsers.style.display = users.length ? 'none' : 'block';
 
-        // ---------- 사용자 ----------
-        async function loadUsers() {
-            try {
-                const res = await fetch(`${API_BASE}/users`);
-                if (res.ok) {
-                    state.users = await res.json();
-                    renderUserSelect();
-                    if (state.users.length > 0) {
-                        document.getElementById('member-select').value = state.users[0].user_id;
-                        selectedUserId = state.users[0].user_id;
-                        loadUserData();
-                    }
-                }
-            } catch (e) { console.warn(e); }
-        }
+    users.forEach(u => {
+      // select 옵션
+      const o = document.createElement('option');
+      o.value = u.user_id;
+      o.textContent = `${u.name} (${u.role})`;
+      memberSelect.appendChild(o);
 
-        function renderUserSelect() {
-            const sel = document.getElementById('member-select');
-            sel.innerHTML = '<option value="">사용자 선택...</option>';
-            state.users.forEach(u => {
-                const o = document.createElement('option');
-                o.value = u.user_id;
-                o.textContent = `${u.name} (${u.role})`;
-                sel.appendChild(o);
-            });
-        }
+      // 카드
+      const card = document.createElement('div');
+      card.className = 'card fade-in';
+      card.style.cursor = 'pointer';
+      card.onclick = () => {
+        localStorage.setItem('selectedUserId', u.user_id);
+        location.href = 'pages/dashboard.html';
+      };
+      card.innerHTML = `
+        <div class="user-card">
+          <div class="user-avatar" style="background:${u.color_code || '#4299E1'}">${u.avatar_initial || '?'}</div>
+          <div>
+            <div class="list-item-title">${u.name}</div>
+            <div class="list-item-meta">${u.role} · ${u.user_id}</div>
+          </div>
+        </div>
+      `;
+      userList.appendChild(card);
+    });
+  } catch (e) {
+    console.warn('loadUsers failed', e);
+    noUsers.style.display = 'block';
+  }
+}
 
-        async function saveUser() {
-            const id = document.getElementById('u-id').value.trim();
-            const name = document.getElementById('u-name').value.trim();
-            if (!id || !name) return alert('ID와 이름을 입력하세요.');
-            try {
-                const res = await fetch(`${API_BASE}/users`, {
-                    method: 'POST', headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({ user_id: id, name, role: document.getElementById('u-role').value, color_code: document.getElementById('u-color').value, avatar_initial: document.getElementById('u-avatar').value || '?' })
-                });
-                if (res.ok) {
-                    closeModal('user-modal');
-                    await loadUsers();
-                    alert('사용자 등록 완료');
-                }
-            } catch (e) { console.warn(e); }
-        }
+async function handleUserForm(e) {
+  e.preventDefault();
+  const payload = {
+    user_id: document.getElementById('u-id').value.trim(),
+    name: document.getElementById('u-name').value.trim(),
+    role: document.getElementById('u-role').value,
+    color_code: document.getElementById('u-color').value,
+    avatar_initial: document.getElementById('u-avatar').value.trim() || '?'
+  };
+  if (!payload.user_id || !payload.name) return alert('ID와 이름을 입력하세요.');
+  try {
+    await createUser(payload);
+    closeModal('user-modal');
+    document.getElementById('user-form').reset();
+    await loadUsers();
+    alert('사용자가 등록되었습니다.');
+  } catch (err) {
+    alert('등록 실패: ' + err.message);
+  }
+}
 
-        function openUserModal() { document.getElementById('user-modal').classList.remove('hidden'); document.getElementById('user-modal').classList.add('flex'); }
-
-        // ---------- 데이터 로드 ----------
-        async function loadUserData() {
-            if (!selectedUserId) return;
-            const [sRes, tRes, fRes] = await Promise.all([
-                fetch(`${API_BASE}/calendar/events?user_id=${selectedUserId}`),
-                fetch(`${API_BASE}/todos?user_id=${selectedUserId}`),
-                fetch(`${API_BASE}/finance/transactions?user_id=${selectedUserId}`)
-            ]);
-            if (sRes.ok) state.schedules = await sRes.json();
-            if (tRes.ok) state.todos = await tRes.json();
-            if (fRes.ok) state.transactions = await fRes.json();
-
-            renderDashboard();
-            renderSchedule();
-            renderTodo();
-            renderFinance();
-        }
-
-        function clearView() {
-            selectedUserId = '';
-            state.schedules = []; state.todos = []; state.transactions = [];
-            renderDashboard(); renderSchedule(); renderTodo(); renderFinance();
-        }
-
-        function renderDashboard() {
-            const u = state.users.find(x => x.user_id === selectedUserId);
-            document.getElementById('user-name').textContent = u ? u.name : '사용자를 선택하세요';
-            document.getElementById('user-role').textContent = u ? u.role : '';
-            document.getElementById('user-avatar').textContent = u ? u.avatar_initial : '?';
-            document.getElementById('user-avatar').style.backgroundColor = u ? u.color_code : '#CBD5E0';
-
-            // 일정
-            const schedContainer = document.getElementById('dashboard-schedule');
-            schedContainer.innerHTML = '';
-            const today = new Date().toISOString().slice(0, 10);
-            const todaySched = state.schedules.filter(s => s.start_time.startsWith(today));
-            if (todaySched.length === 0) schedContainer.innerHTML = '<div class="empty-state">오늘 예정된 일정이 없습니다.</div>';
-            else todaySched.forEach(s => {
-                schedContainer.innerHTML += `<div class="p-3 bg-blue-50 border border-blue-100 rounded-lg"><div class="font-bold text-gray-800 text-xs">${s.title}</div><div class="text-[10px] text-gray-500">${new Date(s.start_time).toLocaleTimeString('ko-KR', {hour:'2-digit',minute:'2-digit'})}</div></div>`;
-            });
-
-            // 가계부 요약
-            const finContainer = document.getElementById('dashboard-finance');
-            finContainer.innerHTML = '';
-            const income = state.transactions.filter(t => t.type === 'INCOME').reduce((a,b) => a + b.amount, 0);
-            const expense = state.transactions.filter(t => t.type === 'EXPENSE').reduce((a,b) => a + b.amount, 0);
-            finContainer.innerHTML = `
-                <div class="flex justify-between items-center"><span class="text-xs text-gray-500">총 수입</span><span class="font-bold text-blue-600">₩ ${income.toLocaleString()}</span></div>
-                <div class="flex justify-between items-center"><span class="text-xs text-gray-500">총 지출</span><span class="font-bold text-red-600">₩ ${expense.toLocaleString()}</span></div>
-                <div class="flex justify-between items-center mt-2 pt-2 border-t border-gray-100"><span class="text-xs text-gray-500">순 저축</span><span class="font-bold text-emerald-600">₩ ${(income - expense).toLocaleString()}</span></div>
-            `;
-        }
-
-        // ---------- 일정 ----------
-        function renderSchedule() {
-            const container = document.getElementById('schedule-list');
-            container.innerHTML = '';
-            if (state.schedules.length === 0) { container.innerHTML = '<div class="empty-state">등록된 일정이 없습니다.</div>'; return; }
-            state.schedules.sort((a,b) => new Date(a.start_time) - new Date(b.start_time)).forEach(s => {
-                container.innerHTML += `
-                <div class="flex items-center justify-between p-3 bg-white border border-gray-100 rounded-lg fade-in">
-                    <div class="flex-grow">
-                        <div class="font-bold text-gray-800 text-sm">${s.title}</div>
-                        <div class="text-xs text-gray-500">${new Date(s.start_time).toLocaleString('ko-KR', {month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit'})} ~ ${new Date(s.end_time).toLocaleString('ko-KR', {hour:'2-digit',minute:'2-digit'})}</div>
-                        <div class="text-[10px] bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded inline-block mt-1">${s.category}</div>
-                    </div>
-                    <button onclick="deleteSchedule('${s.event_id}')" class="text-gray-300 hover:text-red-500 font-bold">✕</button>
-                </div>`;
-            });
-        }
-
-        async function saveSchedule() {
-            const title = document.getElementById('s-title').value.trim();
-            if (!title) return;
-            try {
-                const res = await fetch(`${API_BASE}/calendar/events`, {
-                    method: 'POST', headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({ user_id: selectedUserId, title: title, start_time: document.getElementById('s-start').value, end_time: document.getElementById('s-end').value, category: document.getElementById('s-cat').value, color_tag: document.getElementById('s-color').value, description: document.getElementById('s-desc').value })
-                });
-                if (res.ok) { closeModal('schedule-modal'); loadUserData(); }
-            } catch(e) { console.warn(e); }
-        }
-
-        async function deleteSchedule(id) {
-            if (!confirm('삭제하시겠습니까?')) return;
-            await fetch(`${API_BASE}/calendar/events/${id}`, { method: 'DELETE' });
-            loadUserData();
-        }
-
-        function openScheduleModal() {
-            const now = new Date().toISOString().slice(0, 16);
-            document.getElementById('s-start').value = now;
-            document.getElementById('s-end').value = now;
-            document.getElementById('schedule-modal').classList.remove('hidden');
-            document.getElementById('schedule-modal').classList.add('flex');
-        }
-
-        // ---------- 할일 ----------
-        function renderTodo() {
-            const container = document.getElementById('todo-list');
-            container.innerHTML = '';
-            if (state.todos.length === 0) { container.innerHTML = '<div class="empty-state">등록된 할일이 없습니다.</div>'; return; }
-            state.todos.forEach(t => {
-                container.innerHTML += `
-                <div class="flex items-center justify-between p-3 bg-white border border-gray-100 rounded-lg fade-in">
-                    <div class="flex items-center gap-2 cursor-pointer" onclick="toggleTodo('${t.todo_id}', ${!t.is_completed})">
-                        <div class="w-5 h-5 rounded border flex items-center justify-center text-xs ${t.is_completed ? 'bg-emerald-600 border-emerald-600 text-white' : 'border-gray-300'}">${t.is_completed ? '✓' : ''}</div>
-                        <span class="${t.is_completed ? 'line-through text-gray-400' : 'text-gray-700'}">${t.title}</span>
-                    </div>
-                    <button onclick="deleteTodo('${t.todo_id}')" class="text-gray-300 hover:text-red-500 font-bold">✕</button>
-                </div>`;
-            });
-        }
-
-        async function saveTodo() {
-            const title = document.getElementById('t-title').value.trim();
-            if (!title) return;
-            try {
-                const res = await fetch(`${API_BASE}/todos`, {
-                    method: 'POST', headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({ user_id: selectedUserId, title })
-                });
-                if (res.ok) { closeModal('todo-modal'); loadUserData(); }
-            } catch(e) { console.warn(e); }
-        }
-
-        async function toggleTodo(id, completed) {
-            await fetch(`${API_BASE}/todos/${id}`, { method: 'PUT', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ is_completed: completed }) });
-            loadUserData();
-        }
-
-        async function deleteTodo(id) {
-            await fetch(`${API_BASE}/todos/${id}`, { method: 'DELETE' });
-            loadUserData();
-        }
-
-        function openTodoModal() { document.getElementById('todo-modal').classList.remove('hidden'); document.getElementById('todo-modal').classList.add('flex'); }
-
-        // ---------- 가계부 ----------
-        function renderFinance() {
-            const container = document.getElementById('finance-table');
-            container.innerHTML = '';
-            const income = state.transactions.filter(t => t.type === 'INCOME').reduce((a,b) => a + b.amount, 0);
-            const expense = state.transactions.filter(t => t.type === 'EXPENSE').reduce((a,b) => a + b.amount, 0);
-            document.getElementById('kpi-income').textContent = '₩ ' + income.toLocaleString();
-            document.getElementById('kpi-expense').textContent = '₩ ' + expense.toLocaleString();
-            document.getElementById('kpi-savings').textContent = '₩ ' + (income - expense).toLocaleString();
-
-            if (state.transactions.length === 0) { container.innerHTML = '<tr><td colspan="6" class="p-4 empty-state">거래 내역이 없습니다.</td></tr>'; return; }
-
-            state.transactions.sort((a,b) => new Date(b.transaction_date) - new Date(a.transaction_date)).forEach(t => {
-                const isExp = t.type === 'EXPENSE';
-                container.innerHTML += `
-                <tr class="hover:bg-gray-50">
-                    <td class="p-2 font-mono text-gray-400">${t.transaction_date}</td>
-                    <td class="p-2 font-bold ${isExp ? 'text-red-500' : 'text-blue-600'}">${isExp ? '지출' : '수입'}</td>
-                    <td class="p-2 font-medium text-gray-800">${t.title}</td>
-                    <td class="p-2 text-[10px] bg-gray-100 text-gray-600 px-2 py-1 rounded">${t.category_code}</td>
-                    <td class="p-2 text-right font-bold font-mono ${isExp ? 'text-red-600' : 'text-blue-600'}">${isExp ? '-' : '+'}₩ ${t.amount.toLocaleString()}</td>
-                    <td class="p-2 text-center"><button onclick="deleteFinance('${t.transaction_id}')" class="text-gray-300 hover:text-red-500 font-bold">✕</button></td>
-                </tr>`;
-            });
-
-            updateChart();
-        }
-
-        function updateChart() {
-            const ctx = document.getElementById('financeChart').getContext('2d');
-            const cats = {};
-            state.transactions.filter(t => t.type === 'EXPENSE').forEach(t => { cats[t.category_code] = (cats[t.category_code] || 0) + t.amount; });
-            if (financeChart) financeChart.destroy();
-            financeChart = new Chart(ctx, {
-                type: 'doughnut',
-                data: { labels: Object.keys(cats), datasets: [{ data: Object.values(cats), backgroundColor: ['#FC8181','#63B3ED','#F6AD55','#68D391','#CBD5E0','#F56565'] }] },
-                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { font: { size: 10 } } } } }
-            });
-        }
-
-        async function saveFinance() {
-            const title = document.getElementById('f-title').value.trim();
-            const amount = parseInt(document.getElementById('f-amount').value);
-            if (!title || !amount) return alert('항목명과 금액을 입력하세요.');
-            try {
-                const res = await fetch(`${API_BASE}/finance/transactions`, {
-                    method: 'POST', headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({ user_id: selectedUserId, type: document.getElementById('f-type').value, title, amount, category: document.getElementById('f-cat').value, payment_method: document.getElementById('f-method').value, transaction_date: new Date().toISOString().slice(0,10) })
-                });
-                if (res.ok) { closeModal('finance-modal'); loadUserData(); }
-            } catch(e) { console.warn(e); }
-        }
-
-        async function deleteFinance(id) {
-            await fetch(`${API_BASE}/finance/transactions/${id}`, { method: 'DELETE' });
-            loadUserData();
-        }
-
-        function openFinanceModal() {
-            document.getElementById('f-amount').value = '';
-            document.getElementById('f-title').value = '';
-            document.getElementById('finance-modal').classList.remove('hidden');
-            document.getElementById('finance-modal').classList.add('flex');
-        }
-
-        // ---------- 공통 ----------
-        function switchTab(tabId) {
-            document.querySelectorAll('main > section').forEach(s => s.classList.add('hidden'));
-            document.querySelectorAll('.tab-btn').forEach(b => { b.classList.remove('active', 'text-gray-900'); b.classList.add('text-gray-600'); });
-            document.getElementById(`view-${tabId}`).classList.remove('hidden');
-            document.getElementById(`tab-${tabId}`).classList.add('active', 'text-gray-900');
-            document.getElementById(`tab-${tabId}`).classList.remove('text-gray-600');
-        }
-
-        function closeModal(id) {
-            document.getElementById(id).classList.add('hidden');
-            document.getElementById(id).classList.remove('flex');
-        }
-    </script>
+init();
+</script>
 </body>
 </html>

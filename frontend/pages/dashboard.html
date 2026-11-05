@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>내 대시보드 - 가족 LLM WIKI</title>
+<link rel="stylesheet" href="../assets/css/style.css">
+</head>
+<body>
+<header class="app-header">
+  <div class="header-inner">
+    <div class="header-top">
+      <div class="brand">
+        <span class="brand-title">📊 내 대시보드</span>
+      </div>
+      <span id="backend-status" class="backend-status bg-amber-100 text-amber-800">연결 중...</span>
+    </div>
+    <div class="user-selector">
+      <label>가족 구성원</label>
+      <select id="member-select">
+        <option value="">사용자를 선택하세요</option>
+      </select>
+      <button class="btn-primary" onclick="openModal('user-modal')">+ 사용자 등록</button>
+      <a href="../index.html" class="btn-primary" style="text-decoration:none;">← 홈으로</a>
+    </div>
+  </div>
+</header>
+
+<main class="app-main fade-in">
+  <!-- 현재 사용자 카드 -->
+  <section class="card" style="margin-bottom:1.5rem;">
+    <div style="display:flex; align-items:center; gap:1rem; margin-bottom:1rem;">
+      <div id="user-avatar" class="user-avatar" style="background:#CBD5E0">?</div>
+      <div>
+        <h2 id="user-name" style="margin:0; font-size:1.25rem; color:#1A202C;">사용자를 선택하세요</h2>
+        <p id="user-role" style="margin:0; font-size:0.85rem; color:#718096;"></p>
+      </div>
+    </div>
+    <div class="grid-3">
+      <div class="card kpi-card">
+        <div class="kpi-label">오늘 일정</div>
+        <div class="kpi-value" id="kpi-schedule">0</div>
+      </div>
+      <div class="card kpi-card">
+        <div class="kpi-label">남은 할일</div>
+        <div class="kpi-value" id="kpi-todo">0</div>
+      </div>
+      <div class="card kpi-card">
+        <div class="kpi-label">이달 순 저축</div>
+        <div class="kpi-value" id="kpi-savings">₩ 0</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 빠른 이동 -->
+  <section class="card">
+    <div class="card-title">빠른 이동</div>
+    <div class="grid-3">
+      <a href="schedule.html" class="card fade-in" style="text-decoration:none; height:120px; display:flex; align-items:center; justify-content:center; font-size:1.1rem; font-weight:700; color:#4299E1; border:2px dashed #CBD5E0;">
+        📅 내 일정 관리
+      </a>
+      <a href="todo.html" class="card fade-in" style="text-decoration:none; height:120px; display:flex; align-items:center; justify-content:center; font-size:1.1rem; font-weight:700; color:#48BB78; border:2px dashed #CBD5E0;">
+        ✅ 내 할일 관리
+      </a>
+      <a href="finance.html" class="card fade-in" style="text-decoration:none; height:120px; display:flex; align-items:center; justify-content:center; font-size:1.1rem; font-weight:700; color:#F6AD55; border:2px dashed #CBD5E0;">
+        💰 내 가계부 관리
+      </a>
+    </div>
+  </section>
+</main>
+
+<!-- 사용자 등록 모달 (홈과 동일) -->
+<div id="user-modal" class="modal-overlay">
+  <div class="modal">
+    <div class="modal-title">👤 가족 구성원 등록</div>
+    <form id="user-form" onsubmit="handleUserForm(event)">
+      <div class="form-group">
+        <label class="form-label">사용자 ID</label>
+        <input type="text" id="u-id" class="form-input" placeholder="예: usr_jihoon_01" required>
+      </div>
+      <div class="form-group">
+        <label class="form-label">이름</label>
+        <input type="text" id="u-name" class="form-input" placeholder="예: 지훈" required>
+      </div>
+      <div class="form-group">
+        <label class="form-label">역할</label>
+        <select id="u-role" class="form-input">
+          <option value="ADMIN">관리자</option>
+          <option value="MEMBER">가족구성원</option>
+          <option value="CHILD">자녀</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">아바타 이니셜</label>
+        <input type="text" id="u-avatar" class="form-input" maxlength="2" placeholder="지">
+      </div>
+      <div class="form-group">
+        <label class="form-label">태그 색상</label>
+        <select id="u-color" class="form-input">
+          <option value="#4299E1">파란색</option>
+          <option value="#48BB78">초록색</option>
+          <option value="#F687B3">분홍색</option>
+          <option value="#ECC94B">노란색</option>
+          <option value="#805AD5">보라색</option>
+        </select>
+      </div>
+      <div class="form-actions">
+        <button type="button" class="btn-cancel" onclick="closeModal('user-modal')">취소</button>
+        <button type="submit" class="btn-save">등록하기</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script src="../assets/js/api.js"></script>
+<script>
+const memberSelect = document.getElementById('member-select');
+const selectedUserId = localStorage.getItem('selectedUserId') || '';
+
+async function init() {
+  await checkBackend();
+  await loadUsers();
+
+  if (selectedUserId) {
+    memberSelect.value = selectedUserId;
+    await loadDashboard(selectedUserId);
+  }
+
+  memberSelect.addEventListener('change', (e) => {
+    const id = e.target.value;
+    if (id) {
+      localStorage.setItem('selectedUserId', id);
+      loadDashboard(id);
+    }
+  });
+}
+
+async function loadUsers() {
+  try {
+    const users = await api('/users');
+    memberSelect.innerHTML = '<option value="">사용자를 선택하세요</option>';
+    users.forEach(u => {
+      const o = document.createElement('option');
+      o.value = u.user_id;
+      o.textContent = `${u.name} (${u.role})`;
+      memberSelect.appendChild(o);
+    });
+  } catch (e) { console.warn('loadUsers failed', e); }
+}
+
+async function loadDashboard(userId) {
+  const [events, todos, txs] = await Promise.all([
+    fetchEvents(userId),
+    fetchTodos(userId),
+    fetchTransactions(userId)
+  ]);
+
+  const u = (await api('/users')).find(x => x.user_id === userId);
+  document.getElementById('user-name').textContent = u ? u.name : '';
+  document.getElementById('user-role').textContent = u ? u.role : '';
+  document.getElementById('user-avatar').textContent = u ? (u.avatar_initial || '?') : '?';
+  document.getElementById('user-avatar').style.backgroundColor = u ? (u.color_code || '#4299E1') : '#CBD5E0';
+
+  const today = new Date().toISOString().slice(0, 10);
+  const todayEvents = events.filter(e => e.start_time.startsWith(today));
+  document.getElementById('kpi-schedule').textContent = todayEvents.length;
+
+  const pendingTodos = todos.filter(t => !t.is_completed);
+  document.getElementById('kpi-todo').textContent = pendingTodos.length;
+
+  const income = txs.filter(t => t.type === 'INCOME').reduce((a,b) => a + b.amount, 0);
+  const expense = txs.filter(t => t.type === 'EXPENSE').reduce((a,b) => a + b.amount, 0);
+  document.getElementById('kpi-savings').textContent = '₩ ' + formatMoney(income - expense);
+}
+
+async function handleUserForm(e) {
+  e.preventDefault();
+  const payload = {
+    user_id: document.getElementById('u-id').value.trim(),
+    name: document.getElementById('u-name').value.trim(),
+    role: document.getElementById('u-role').value,
+    color_code: document.getElementById('u-color').value,
+    avatar_initial: document.getElementById('u-avatar').value.trim() || '?'
+  };
+  if (!payload.user_id || !payload.name) return alert('ID와 이름을 입력하세요.');
+  try {
+    await createUser(payload);
+    closeModal('user-modal');
+    document.getElementById('user-form').reset();
+    await loadUsers();
+    alert('사용자가 등록되었습니다.');
+  } catch (err) {
+    alert('등록 실패: ' + err.message);
+  }
+}
+
+init();
+</script>
+</body>
+</html>

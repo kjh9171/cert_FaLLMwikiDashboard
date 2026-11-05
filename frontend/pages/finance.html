@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>내 가계부 - 가족 LLM WIKI</title>
+<link rel="stylesheet" href="../assets/css/style.css">
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+<header class="app-header">
+  <div class="header-inner">
+    <div class="header-top">
+      <div class="brand">
+        <span class="brand-title">💰 내 가계부 관리</span>
+      </div>
+      <span id="backend-status" class="backend-status bg-amber-100 text-amber-800">연결 중...</span>
+    </div>
+    <div class="user-selector">
+      <label>가족 구성원</label>
+      <select id="member-select">
+        <option value="">사용자를 선택하세요</option>
+      </select>
+      <button class="btn-add" onclick="openModal('finance-modal')">+ 거래 추가</button>
+      <a href="dashboard.html" class="btn-primary" style="text-decoration:none;">← 대시보드</a>
+    </div>
+  </div>
+</header>
+
+<main class="app-main fade-in">
+  <!-- KPI -->
+  <section class="card" style="margin-bottom:1.5rem;">
+    <div class="grid-3">
+      <div class="card kpi-card">
+        <div class="kpi-label">총 수입</div>
+        <div class="kpi-value" id="kpi-income" style="color:#4299E1;">₩ 0</div>
+      </div>
+      <div class="card kpi-card">
+        <div class="kpi-label">총 지출</div>
+        <div class="kpi-value" id="kpi-expense" style="color:#FC8181;">₩ 0</div>
+      </div>
+      <div class="card kpi-card">
+        <div class="kpi-label">순 저축</div>
+        <div class="kpi-value" id="kpi-savings" style="color:#48BB78;">₩ 0</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 차트 + 테이블 -->
+  <section class="card" style="display:flex; flex-direction:column; gap:1rem;">
+    <div style="display:flex; justify-content:space-between; align-items:center;">
+      <div class="card-title">카테고리별 지출</div>
+      <div id="no-chart" class="empty-state" style="padding:0; font-size:0.85rem;">지출 데이터가 없습니다.</div>
+    </div>
+    <div class="chart-wrap" id="chart-container" style="display:none;">
+      <canvas id="financeChart"></canvas>
+    </div>
+
+    <div class="card-title" style="margin-top:0.5rem;">거래 내역</div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th style="width:130px;">날짜</th>
+            <th style="width:80px;">구분</th>
+            <th>항목</th>
+            <th style="width:120px;">카테고리</th>
+            <th style="width:130px; text-align:right;">금액</th>
+            <th style="width:80px; text-align:center;">관리</th>
+          </tr>
+        </thead>
+        <tbody id="finance-table"></tbody>
+      </table>
+    </div>
+  </section>
+</main>
+
+<!-- 거래 등록 모달 -->
+<div id="finance-modal" class="modal-overlay">
+  <div class="modal">
+    <div class="modal-title">💰 거래 등록</div>
+    <form id="finance-form" onsubmit="handleFinanceForm(event)">
+      <div class="form-group">
+        <label class="form-label">구분</label>
+        <select id="f-type" class="form-input">
+          <option value="EXPENSE">지출 (-)</option>
+          <option value="INCOME">수입 (+)</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">항목명</label>
+        <input type="text" id="f-title" class="form-input" placeholder="예: 마트 장보기" required>
+      </div>
+      <div class="form-group">
+        <label class="form-label">금액 (원)</label>
+        <input type="number" id="f-amount" class="form-input" placeholder="35000" required>
+      </div>
+      <div class="form-group">
+        <label class="form-label">카테고리</label>
+        <select id="f-cat" class="form-input">
+          <option value="식비">식비</option>
+          <option value="육아/교육">육아/교육</option>
+          <option value="쇼핑/생활">쇼핑/생활</option>
+          <option value="주거/통신">주거/통신</option>
+          <option value="기타">기타</option>
+          <option value="월급/수입">월급/수입</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">결제 수단</label>
+        <select id="f-method" class="form-input">
+          <option value="현대카드">현대카드</option>
+          <option value="신한카드">신한카드</option>
+          <option value="계좌이체">계좌이체</option>
+          <option value="현금">현금</option>
+        </select>
+      </div>
+      <div class="form-actions">
+        <button type="button" class="btn-cancel" onclick="closeModal('finance-modal')">취소</button>
+        <button type="submit" class="btn-save">등록하기</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- 사용자 등록 모달 -->
+<div id="user-modal" class="modal-overlay">
+  <div class="modal">
+    <div class="modal-title">👤 가족 구성원 등록</div>
+    <form id="user-form" onsubmit="handleUserForm(event)">
+      <div class="form-group">
+        <label class="form-label">사용자 ID</label>
+        <input type="text" id="u-id" class="form-input" placeholder="예: usr_jihoon_01" required>
+      </div>
+      <div class="form-group">
+        <label class="form-label">이름</label>
+        <input type="text" id="u-name" class="form-input" placeholder="예: 지훈" required>
+      </div>
+      <div class="form-group">
+        <label class="form-label">역할</label>
+        <select id="u-role" class="form-input">
+          <option value="ADMIN">관리자</option>
+          <option value="MEMBER">가족구성원</option>
+          <option value="CHILD">자녀</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">아바타 이니셜</label>
+        <input type="text" id="u-avatar" class="form-input" maxlength="2" placeholder="지">
+      </div>
+      <div class="form-group">
+        <label class="form-label">태그 색상</label>
+        <select id="u-color" class="form-input">
+          <option value="#4299E1">파란색</option>
+          <option value="#48BB78">초록색</option>
+          <option value="#F687B3">분홍색</option>
+          <option value="#ECC94B">노란색</option>
+        </select>
+      </div>
+      <div class="form-actions">
+        <button type="button" class="btn-cancel" onclick="closeModal('user-modal')">취소</button>
+        <button type="submit" class="btn-save">등록하기</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script src="../assets/js/api.js"></script>
+<script>
+const memberSelect = document.getElementById('member-select');
+const financeTable = document.getElementById('finance-table');
+let chart = null;
+let currentUserId = localStorage.getItem('selectedUserId') || '';
+
+async function init() {
+  await checkBackend();
+  await loadUsers();
+  if (currentUserId) {
+    memberSelect.value = currentUserId;
+    await loadFinance(currentUserId);
+  }
+  memberSelect.addEventListener('change', (e) => {
+    currentUserId = e.target.value;
+    localStorage.setItem('selectedUserId', currentUserId);
+    if (currentUserId) loadFinance(currentUserId);
+    else {
+      financeTable.innerHTML = '';
+      updateKPIs(0, 0, 0);
+      if (chart) chart.destroy();
+    }
+  });
+}
+
+async function loadUsers() {
+  try {
+    const users = await api('/users');
+    memberSelect.innerHTML = '<option value="">사용자를 선택하세요</option>';
+    users.forEach(u => {
+      const o = document.createElement('option');
+      o.value = u.user_id;
+      o.textContent = `${u.name} (${u.role})`;
+      memberSelect.appendChild(o);
+    });
+  } catch (e) { console.warn(e); }
+}
+
+async function loadFinance(userId) {
+  try {
+    const txs = await fetchTransactions(userId);
+    renderFinance(txs);
+  } catch (e) { console.warn(e); }
+}
+
+function renderFinance(txs) {
+  const income = txs.filter(t => t.type === 'INCOME').reduce((a,b) => a + b.amount, 0);
+  const expense = txs.filter(t => t.type === 'EXPENSE').reduce((a,b) => a + b.amount, 0);
+  updateKPIs(income, expense, income - expense);
+
+  // 테이블
+  financeTable.innerHTML = '';
+  if (txs.length === 0) {
+    financeTable.innerHTML = '<tr><td colspan="6" class="empty-state" style="padding:2rem;">거래 내역이 없습니다.</td></tr>';
+  } else {
+    txs.sort((a,b) => new Date(b.transaction_date) - new Date(a.transaction_date)).forEach(t => {
+      const isExp = t.type === 'EXPENSE';
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td class="font-mono text-gray-400 text-xs">${t.transaction_date}</td>
+        <td><span class="badge ${isExp ? 'badge-expense' : 'badge-income'}">${isExp ? '지출' : '수입'}</span></td>
+        <td class="font-medium text-gray-800">${t.title}</td>
+        <td class="text-xs text-gray-600">${t.category_code}</td>
+        <td class="text-right font-bold font-mono text-xs ${isExp ? 'text-red-600' : 'text-blue-600'}">${isExp ? '-' : '+'}₩ ${formatMoney(t.amount)}</td>
+        <td class="text-center"><button class="btn-delete" onclick="deleteFinanceAndReload('${t.transaction_id}')">✕</button></td>
+      `;
+      financeTable.appendChild(tr);
+    });
+  }
+
+  // 차트
+  updateChart(txs);
+}
+
+function updateKPIs(income, expense, savings) {
+  document.getElementById('kpi-income').textContent = '₩ ' + formatMoney(income);
+  document.getElementById('kpi-expense').textContent = '₩ ' + formatMoney(expense);
+  document.getElementById('kpi-savings').textContent = '₩ ' + formatMoney(savings);
+}
+
+function updateChart(txs) {
+  const ctx = document.getElementById('financeChart').getContext('2d');
+  const catContainer = document.getElementById('no-chart');
+  const chartContainer = document.getElementById('chart-container');
+
+  const cats = {};
+  txs.filter(t => t.type === 'EXPENSE').forEach(t => {
+    cats[t.category_code] = (cats[t.category_code] || 0) + t.amount;
+  });
+
+  if (Object.keys(cats).length === 0) {
+    chartContainer.style.display = 'none';
+    catContainer.style.display = 'block';
+    if (chart) chart.destroy();
+    return;
+  }
+  chartContainer.style.display = 'block';
+  catContainer.style.display = 'none';
+
+  if (chart) chart.destroy();
+  chart = new Chart(ctx, {
+    type: 'doughnut',
+    data: {
+      labels: Object.keys(cats),
+      datasets: [{
+        data: Object.values(cats),
+        backgroundColor: ['#FC8181','#63B3ED','#F6AD55','#68D391','#CBD5E0','#F56565']
+      }]
+    },
+    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { font: { size: 11 } } } } }
+  });
+}
+
+async function handleFinanceForm(e) {
+  e.preventDefault();
+  if (!currentUserId) return alert('먼저 사용자를 선택하세요.');
+  const title = document.getElementById('f-title').value.trim();
+  const amount = parseInt(document.getElementById('f-amount').value);
+  if (!title || !amount) return alert('항목명과 금액을 입력하세요.');
+  try {
+    await createTransaction({
+      user_id: currentUserId,
+      type: document.getElementById('f-type').value,
+      title,
+      amount,
+      category: document.getElementById('f-cat').value,
+      payment_method: document.getElementById('f-method').value,
+      transaction_date: new Date().toISOString().slice(0, 10)
+    });
+    closeModal('finance-modal');
+    document.getElementById('finance-form').reset();
+    await loadFinance(currentUserId);
+  } catch (err) { alert('등록 실패: ' + err.message); }
+}
+
+async function deleteFinanceAndReload(id) {
+  if (!confirm('삭제하시겠습니까?')) return;
+  try {
+    await deleteTransaction(id);
+    await loadFinance(currentUserId);
+  } catch (err) { alert('삭제 실패: ' + err.message); }
+}
+
+async function handleUserForm(e) {
+  e.preventDefault();
+  const payload = {
+    user_id: document.getElementById('u-id').value.trim(),
+    name: document.getElementById('u-name').value.trim(),
+    role: document.getElementById('u-role').value,
+    color_code: document.getElementById('u-color').value,
+    avatar_initial: document.getElementById('u-avatar').value.trim() || '?'
+  };
+  if (!payload.user_id || !payload.name) return alert('ID와 이름을 입력하세요.');
+  try {
+    await createUser(payload);
+    closeModal('user-modal');
+    document.getElementById('user-form').reset();
+    await loadUsers();
+    if (currentUserId) await loadFinance(currentUserId);
+    alert('사용자가 등록되었습니다.');
+  } catch (err) { alert('등록 실패: ' + err.message); }
+}
+
+init();
+</script>
+</body>
+</html>

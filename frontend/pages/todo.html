@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>내 할일 - 가족 LLM WIKI</title>
+<link rel="stylesheet" href="../assets/css/style.css">
+</head>
+<body>
+<header class="app-header">
+  <div class="header-inner">
+    <div class="header-top">
+      <div class="brand">
+        <span class="brand-title">✅ 내 할일 관리</span>
+      </div>
+      <span id="backend-status" class="backend-status bg-amber-100 text-amber-800">연결 중...</span>
+    </div>
+    <div class="user-selector">
+      <label>가족 구성원</label>
+      <select id="member-select">
+        <option value="">사용자를 선택하세요</option>
+      </select>
+      <button class="btn-add" onclick="openModal('todo-modal')">+ 할일 추가</button>
+      <a href="dashboard.html" class="btn-primary" style="text-decoration:none;">← 대시보드</a>
+    </div>
+  </div>
+</header>
+
+<main class="app-main fade-in">
+  <section class="card">
+    <div class="card-title">내 할일 목록</div>
+    <div id="todo-list" class="item-list"></div>
+    <div id="empty-todo" class="empty-state">사용자를 선택하면 할일이 표시됩니다.</div>
+  </section>
+</main>
+
+<!-- 할일 등록 모달 -->
+<div id="todo-modal" class="modal-overlay">
+  <div class="modal">
+    <div class="modal-title">✅ 할일 등록</div>
+    <form id="todo-form" onsubmit="handleTodoForm(event)">
+      <div class="form-group">
+        <label class="form-label">할일 내용</label>
+        <input type="text" id="t-title" class="form-input" placeholder="예: 장보기" required>
+      </div>
+      <div class="form-actions">
+        <button type="button" class="btn-cancel" onclick="closeModal('todo-modal')">취소</button>
+        <button type="submit" class="btn-save">등록하기</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- 사용자 등록 모달 -->
+<div id="user-modal" class="modal-overlay">
+  <div class="modal">
+    <div class="modal-title">👤 가족 구성원 등록</div>
+    <form id="user-form" onsubmit="handleUserForm(event)">
+      <div class="form-group">
+        <label class="form-label">사용자 ID</label>
+        <input type="text" id="u-id" class="form-input" placeholder="예: usr_jihoon_01" required>
+      </div>
+      <div class="form-group">
+        <label class="form-label">이름</label>
+        <input type="text" id="u-name" class="form-input" placeholder="예: 지훈" required>
+      </div>
+      <div class="form-group">
+        <label class="form-label">역할</label>
+        <select id="u-role" class="form-input">
+          <option value="ADMIN">관리자</option>
+          <option value="MEMBER">가족구성원</option>
+          <option value="CHILD">자녀</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">아바타 이니셜</label>
+        <input type="text" id="u-avatar" class="form-input" maxlength="2" placeholder="지">
+      </div>
+      <div class="form-group">
+        <label class="form-label">태그 색상</label>
+        <select id="u-color" class="form-input">
+          <option value="#4299E1">파란색</option>
+          <option value="#48BB78">초록색</option>
+          <option value="#F687B3">분홍색</option>
+          <option value="#ECC94B">노란색</option>
+        </select>
+      </div>
+      <div class="form-actions">
+        <button type="button" class="btn-cancel" onclick="closeModal('user-modal')">취소</button>
+        <button type="submit" class="btn-save">등록하기</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script src="../assets/js/api.js"></script>
+<script>
+const memberSelect = document.getElementById('member-select');
+const todoList = document.getElementById('todo-list');
+const emptyTodo = document.getElementById('empty-todo');
+let currentUserId = localStorage.getItem('selectedUserId') || '';
+
+async function init() {
+  await checkBackend();
+  await loadUsers();
+  if (currentUserId) {
+    memberSelect.value = currentUserId;
+    await loadTodos(currentUserId);
+  }
+  memberSelect.addEventListener('change', (e) => {
+    currentUserId = e.target.value;
+    localStorage.setItem('selectedUserId', currentUserId);
+    if (currentUserId) loadTodos(currentUserId);
+    else {
+      todoList.innerHTML = '';
+      emptyTodo.style.display = 'block';
+    }
+  });
+}
+
+async function loadUsers() {
+  try {
+    const users = await api('/users');
+    memberSelect.innerHTML = '<option value="">사용자를 선택하세요</option>';
+    users.forEach(u => {
+      const o = document.createElement('option');
+      o.value = u.user_id;
+      o.textContent = `${u.name} (${u.role})`;
+      memberSelect.appendChild(o);
+    });
+  } catch (e) { console.warn(e); }
+}
+
+async function loadTodos(userId) {
+  try {
+    const todos = await fetchTodos(userId);
+    todoList.innerHTML = '';
+    emptyTodo.style.display = todos.length ? 'none' : 'block';
+    todos.forEach(t => {
+      const el = document.createElement('div');
+      el.className = 'list-item fade-in';
+      el.innerHTML = `
+        <div class="list-item-content" style="cursor:pointer;" onclick="toggleTodoAndReload('${t.todo_id}', ${!t.is_completed})">
+          <div class="list-item-title ${t.is_completed ? 'line-through text-gray-400' : ''}">${t.title}</div>
+        </div>
+        <div style="display:flex; align-items:center; gap:0.5rem;">
+          <label style="cursor:pointer; margin:0; display:flex; align-items:center; gap:0.5rem;" onclick="event.stopPropagation(); toggleTodoAndReload('${t.todo_id}', ${!t.is_completed})">
+            <input type="checkbox" ${t.is_completed ? 'checked' : ''} style="accent-color:#4299E1;">
+            ${t.is_completed ? '완료' : '미완료'}
+          </label>
+          <button class="btn-delete" onclick="deleteTodoAndReload('${t.todo_id}')" title="삭제">✕</button>
+        </div>
+      `;
+      todoList.appendChild(el);
+    });
+  } catch (e) { console.warn(e); }
+}
+
+async function handleTodoForm(e) {
+  e.preventDefault();
+  if (!currentUserId) return alert('먼저 사용자를 선택하세요.');
+  const title = document.getElementById('t-title').value.trim();
+  if (!title) return alert('내용을 입력하세요.');
+  try {
+    await createTodo({ user_id: currentUserId, title });
+    closeModal('todo-modal');
+    document.getElementById('todo-form').reset();
+    await loadTodos(currentUserId);
+  } catch (err) { alert('등록 실패: ' + err.message); }
+}
+
+async function toggleTodoAndReload(id, completed) {
+  try {
+    await toggleTodo(id, completed);
+    await loadTodos(currentUserId);
+  } catch (err) { alert('수정 실패: ' + err.message); }
+}
+
+async function deleteTodoAndReload(id) {
+  if (!confirm('삭제하시겠습니까?')) return;
+  try {
+    await deleteTodo(id);
+    await loadTodos(currentUserId);
+  } catch (err) { alert('삭제 실패: ' + err.message); }
+}
+
+async function handleUserForm(e) {
+  e.preventDefault();
+  const payload = {
+    user_id: document.getElementById('u-id').value.trim(),
+    name: document.getElementById('u-name').value.trim(),
+    role: document.getElementById('u-role').value,
+    color_code: document.getElementById('u-color').value,
+    avatar_initial: document.getElementById('u-avatar').value.trim() || '?'
+  };
+  if (!payload.user_id || !payload.name) return alert('ID와 이름을 입력하세요.');
+  try {
+    await createUser(payload);
+    closeModal('user-modal');
+    document.getElementById('user-form').reset();
+    await loadUsers();
+    if (currentUserId) await loadTodos(currentUserId);
+    alert('사용자가 등록되었습니다.');
+  } catch (err) { alert('등록 실패: ' + err.message); }
+}
+
+init();
+</script>
+</body>
+</html>

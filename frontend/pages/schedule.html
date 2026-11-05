@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>내 일정 - 가족 LLM WIKI</title>
+<link rel="stylesheet" href="../assets/css/style.css">
+</head>
+<body>
+<header class="app-header">
+  <div class="header-inner">
+    <div class="header-top">
+      <div class="brand">
+        <span class="brand-title">📅 내 일정 관리</span>
+      </div>
+      <span id="backend-status" class="backend-status bg-amber-100 text-amber-800">연결 중...</span>
+    </div>
+    <div class="user-selector">
+      <label>가족 구성원</label>
+      <select id="member-select">
+        <option value="">사용자를 선택하세요</option>
+      </select>
+      <button class="btn-add" onclick="openModal('schedule-modal')">+ 일정 추가</button>
+      <a href="dashboard.html" class="btn-primary" style="text-decoration:none;">← 대시보드</a>
+    </div>
+  </div>
+</header>
+
+<main class="app-main fade-in">
+  <section class="card">
+    <div class="card-title">내 일정 목록</div>
+    <div id="schedule-list" class="item-list">
+      <!-- JS로 동적 생성 -->
+    </div>
+    <div id="empty-schedule" class="empty-state">사용자를 선택하면 일정이 표시됩니다.</div>
+  </section>
+</main>
+
+<!-- 일정 등록 모달 -->
+<div id="schedule-modal" class="modal-overlay">
+  <div class="modal">
+    <div class="modal-title">📅 일정 등록</div>
+    <form id="schedule-form" onsubmit="handleScheduleForm(event)">
+      <div class="form-group">
+        <label class="form-label">제목</label>
+        <input type="text" id="s-title" class="form-input" required>
+      </div>
+      <div class="form-group">
+        <label class="form-label">시작 일시</label>
+        <input type="datetime-local" id="s-start" class="form-input" required>
+      </div>
+      <div class="form-group">
+        <label class="form-label">종료 일시</label>
+        <input type="datetime-local" id="s-end" class="form-input" required>
+      </div>
+      <div class="form-group">
+        <label class="form-label">카테고리</label>
+        <select id="s-cat" class="form-input">
+          <option value="개인">개인</option>
+          <option value="가족">가족</option>
+          <option value="육아">육아</option>
+          <option value="건강">건강</option>
+          <option value="기타">기타</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">색상</label>
+        <select id="s-color" class="form-input">
+          <option value="#4299E1">파란색</option>
+          <option value="#48BB78">초록색</option>
+          <option value="#F687B3">분홍색</option>
+          <option value="#ECC94B">노란색</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">설명</label>
+        <input type="text" id="s-desc" class="form-input">
+      </div>
+      <div class="form-actions">
+        <button type="button" class="btn-cancel" onclick="closeModal('schedule-modal')">취소</button>
+        <button type="submit" class="btn-save">등록하기</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- 사용자 등록 모달 -->
+<div id="user-modal" class="modal-overlay">
+  <div class="modal">
+    <div class="modal-title">👤 가족 구성원 등록</div>
+    <form id="user-form" onsubmit="handleUserForm(event)">
+      <div class="form-group">
+        <label class="form-label">사용자 ID</label>
+        <input type="text" id="u-id" class="form-input" placeholder="예: usr_jihoon_01" required>
+      </div>
+      <div class="form-group">
+        <label class="form-label">이름</label>
+        <input type="text" id="u-name" class="form-input" placeholder="예: 지훈" required>
+      </div>
+      <div class="form-group">
+        <label class="form-label">역할</label>
+        <select id="u-role" class="form-input">
+          <option value="ADMIN">관리자</option>
+          <option value="MEMBER">가족구성원</option>
+          <option value="CHILD">자녀</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">아바타 이니셜</label>
+        <input type="text" id="u-avatar" class="form-input" maxlength="2" placeholder="지">
+      </div>
+      <div class="form-group">
+        <label class="form-label">태그 색상</label>
+        <select id="u-color" class="form-input">
+          <option value="#4299E1">파란색</option>
+          <option value="#48BB78">초록색</option>
+          <option value="#F687B3">분홍색</option>
+          <option value="#ECC94B">노란색</option>
+        </select>
+      </div>
+      <div class="form-actions">
+        <button type="button" class="btn-cancel" onclick="closeModal('user-modal')">취소</button>
+        <button type="submit" class="btn-save">등록하기</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script src="../assets/js/api.js"></script>
+<script>
+const memberSelect = document.getElementById('member-select');
+const scheduleList = document.getElementById('schedule-list');
+const emptySchedule = document.getElementById('empty-schedule');
+let currentUserId = localStorage.getItem('selectedUserId') || '';
+
+async function init() {
+  await checkBackend();
+  await loadUsers();
+  if (currentUserId) {
+    memberSelect.value = currentUserId;
+    await loadSchedule(currentUserId);
+  }
+  memberSelect.addEventListener('change', (e) => {
+    currentUserId = e.target.value;
+    localStorage.setItem('selectedUserId', currentUserId);
+    if (currentUserId) loadSchedule(currentUserId);
+    else {
+      scheduleList.innerHTML = '';
+      emptySchedule.style.display = 'block';
+    }
+  });
+}
+
+async function loadUsers() {
+  try {
+    const users = await api('/users');
+    memberSelect.innerHTML = '<option value="">사용자를 선택하세요</option>';
+    users.forEach(u => {
+      const o = document.createElement('option');
+      o.value = u.user_id;
+      o.textContent = `${u.name} (${u.role})`;
+      memberSelect.appendChild(o);
+    });
+  } catch (e) { console.warn(e); }
+}
+
+async function loadSchedule(userId) {
+  try {
+    const events = await fetchEvents(userId);
+    scheduleList.innerHTML = '';
+    emptySchedule.style.display = events.length ? 'none' : 'block';
+    events.sort((a,b) => new Date(a.start_time) - new Date(b.start_time)).forEach(ev => {
+      const el = document.createElement('div');
+      el.className = 'list-item fade-in';
+      el.innerHTML = `
+        <div class="list-item-content">
+          <div class="list-item-title">${ev.title}</div>
+          <div class="list-item-meta">
+            ${formatDateTime(ev.start_time)} ~ ${formatDateTime(ev.end_time)}
+            <span class="badge" style="background:#EDF2F7; color:#4A5568; margin-left:0.5rem;">${ev.category}</span>
+          </div>
+        </div>
+        <button class="btn-delete" onclick="deleteEventAndReload('${ev.event_id}')" title="삭제">✕</button>
+      `;
+      scheduleList.appendChild(el);
+    });
+  } catch (e) { console.warn(e); }
+}
+
+async function handleScheduleForm(e) {
+  e.preventDefault();
+  if (!currentUserId) return alert('먼저 사용자를 선택하세요.');
+  const payload = {
+    user_id: currentUserId,
+    title: document.getElementById('s-title').value.trim(),
+    start_time: document.getElementById('s-start').value,
+    end_time: document.getElementById('s-end').value,
+    category: document.getElementById('s-cat').value,
+    color_tag: document.getElementById('s-color').value,
+    description: document.getElementById('s-desc').value.trim()
+  };
+  if (!payload.title) return alert('제목을 입력하세요.');
+  try {
+    await createEvent(payload);
+    closeModal('schedule-modal');
+    document.getElementById('schedule-form').reset();
+    await loadSchedule(currentUserId);
+  } catch (err) { alert('등록 실패: ' + err.message); }
+}
+
+async function deleteEventAndReload(id) {
+  if (!confirm('삭제하시겠습니까?')) return;
+  try {
+    await deleteEvent(id);
+    await loadSchedule(currentUserId);
+  } catch (err) { alert('삭제 실패: ' + err.message); }
+}
+
+async function handleUserForm(e) {
+  e.preventDefault();
+  const payload = {
+    user_id: document.getElementById('u-id').value.trim(),
+    name: document.getElementById('u-name').value.trim(),
+    role: document.getElementById('u-role').value,
+    color_code: document.getElementById('u-color').value,
+    avatar_initial: document.getElementById('u-avatar').value.trim() || '?'
+  };
+  if (!payload.user_id || !payload.name) return alert('ID와 이름을 입력하세요.');
+  try {
+    await createUser(payload);
+    closeModal('user-modal');
+    document.getElementById('user-form').reset();
+    await loadUsers();
+    if (currentUserId) await loadSchedule(currentUserId);
+    alert('사용자가 등록되었습니다.');
+  } catch (err) { alert('등록 실패: ' + err.message); }
+}
+
+init();
+</script>
+</body>
+</html>

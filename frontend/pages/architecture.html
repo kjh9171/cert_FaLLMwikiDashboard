@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>시스템 아키텍처 - 가족 LLM WIKI</title>
+<link rel="stylesheet" href="../assets/css/style.css">
+</head>
+<body>
+<header class="app-header">
+  <div class="header-inner">
+    <div class="header-top">
+      <div class="brand">
+        <span class="brand-title">🏗️ 시스템 아키텍처</span>
+      </div>
+      <span id="backend-status" class="backend-status bg-amber-100 text-amber-800">연결 중...</span>
+    </div>
+    <div class="user-selector">
+      <a href="dashboard.html" class="btn-primary" style="text-decoration:none;">← 대시보드로</a>
+    </div>
+  </div>
+</header>
+
+<main class="app-main fade-in">
+  <section class="card">
+    <div class="card-title">시스템 아키텍처 개요</div>
+    <div class="arch-grid">
+      <div class="arch-card" style="border-top:4px solid #4299E1;">
+        <div style="font-size:0.75rem; font-weight:700; color:#2B6CB0; text-transform:uppercase; margin-bottom:0.5rem;">1. Client Layer</div>
+        <div style="font-size:0.85rem; color:#1A202C; font-weight:600; margin-bottom:0.5rem;">Next.js / PWA Dashboard</div>
+        <div style="font-size:0.8rem; color:#718096;">거실 월패드 (Kiosk Mode)<br>영수증 카메라 OCR 업로드<br>WebSockets Realtime Sync</div>
+      </div>
+      <div class="arch-card" style="border-top:4px solid #48BB78;">
+        <div style="font-size:0.75rem; font-weight:700; color:#276749; text-transform:uppercase; margin-bottom:0.5rem;">2. Core & RAG Service Layer</div>
+        <div style="font-size:0.85rem; color:#1A202C; font-weight:600; margin-bottom:0.5rem;">FastAPI & LangChain Agent</div>
+        <div style="font-size:0.8rem; color:#718096;">PaddleOCR / EasyOCR Engine<br>Function Calling Agent<br>Redis Pub/Sub Message Broker</div>
+      </div>
+      <div class="arch-card" style="border-top:4px solid #F6AD55;">
+        <div style="font-size:0.75rem; font-weight:700; color:#9B6D00; text-transform:uppercase; margin-bottom:0.5rem;">3. Data & Storage Layer</div>
+        <div style="font-size:0.85rem; color:#1A202C; font-weight:600; margin-bottom:0.5rem;">PostgreSQL 16 Engine</div>
+        <div style="font-size:0.8rem; color:#718096;">pgvector (HNSW Index 1536d)<br>Finance / Receipt / Todo Schema<br>ACID + Hybrid Vector Search</div>
+      </div>
+    </div>
+  </section>
+
+  <section class="card" style="margin-top:1.5rem;">
+    <div class="card-title">데이터베이스 스키마 주요 테이블</div>
+    <table style="margin-top:1rem;">
+      <thead>
+        <tr>
+          <th style="width:200px;">테이블</th>
+          <th>주요 컬럼</th>
+          <th>설명</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td class="font-bold text-blue-600">users</td>
+          <td class="text-xs text-gray-600 font-mono">user_id (VARCHAR PK), name, role, color_code, avatar_initial, birth_date</td>
+          <td class="text-xs text-gray-600">가족 구성원 정보 및 태그 색상</td>
+        </tr>
+        <tr>
+          <td class="font-bold text-amber-700">finance_transactions</td>
+          <td class="text-xs text-gray-600 font-mono">transaction_id (PK), user_id (FK), category_code, type, amount, transaction_date, payment_method</td>
+          <td class="text-xs text-gray-600">가계 수입 및 지출 통합 원장 테이블</td>
+        </tr>
+        <tr>
+          <td class="font-bold text-amber-700">calendar_events</td>
+          <td class="text-xs text-gray-600 font-mono">event_id (PK), user_id (FK), title, start_time, end_time, category, color_tag</td>
+          <td class="text-xs text-gray-600">월간/일간 일정 데이터 관리</td>
+        </tr>
+        <tr>
+          <td class="font-bold text-blue-600">todos</td>
+          <td class="text-xs text-gray-600 font-mono">todo_id (PK), user_id (FK), title, is_completed, completed_at</td>
+          <td class="text-xs text-gray-600">가족 구성원별 할일 목록</td>
+        </tr>
+        <tr>
+          <td class="font-bold text-purple-600">receipts</td>
+          <td class="text-xs text-gray-600 font-mono">receipt_id (PK), store_name, total_amount, image_url, ocr_confidence, scan_status</td>
+          <td class="text-xs text-gray-600">OCR로 스캔된 영수증 정보</td>
+        </tr>
+        <tr>
+          <td class="font-bold text-emerald-700">wiki_document_chunks</td>
+          <td class="text-xs text-gray-600 font-mono">chunk_id (PK), doc_id (FK), chunk_text, embedding (vector(1536))</td>
+          <td class="text-xs text-gray-600">pgvector HNSW 벡터 코사인 유사도 인덱스</td>
+        </tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section class="card" style="margin-top:1.5rem;">
+    <div class="card-title">포트 구성 (Docker Compose)</div>
+    <table style="margin-top:1rem;">
+      <thead>
+        <tr>
+          <th style="width:200px;">서비스</th>
+          <th>호스트 포트</th>
+          <th>컨테이너 포트</th>
+          <th>용도</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td class="font-bold">family_backend</td>
+          <td class="text-gray-600">8088</td>
+          <td class="text-gray-600">8000</td>
+          <td class="text-gray-600">FastAPI 백엔드 API</td>
+        </tr>
+        <tr>
+          <td class="font-bold">family_web</td>
+          <td class="text-gray-600">8085</td>
+          <td class="text-gray-600">80</td>
+          <td class="text-gray-600">프론트엔드 정적 파일 (nginx)</td>
+        </tr>
+        <tr>
+          <td class="font-bold">family_db</td>
+          <td class="text-gray-600">5435</td>
+          <td class="text-gray-600">5432</td>
+          <td class="text-gray-600">PostgreSQL 16 + pgvector</td>
+        </tr>
+        <tr>
+          <td class="font-bold">family_redis</td>
+          <td class="text-gray-600">6385</td>
+          <td class="text-gray-600">6379</td>
+          <td class="text-gray-600">Redis 메시지 브로커</td>
+        </tr>
+        <tr>
+          <td class="font-bold">family_ollama</td>
+          <td class="text-gray-600">11438</td>
+          <td class="text-gray-600">11434</td>
+          <td class="text-gray-600">로컬 LLM (Ollama Llama3)</td>
+        </tr>
+      </tbody>
+    </table>
+  </section>
+</main>
+
+<script src="../assets/js/api.js"></script>
+<script>
+initBackend();
+async function initBackend() { await checkBackend(); }
+</script>
+</body>
+</html>
