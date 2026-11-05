@@ -58,7 +58,7 @@ services:
     container_name: family_web
     restart: always
     volumes:
-      - ./index.html:/usr/share/nginx/html/index.html
+      - ./frontend:/usr/share/nginx/html
     ports:
       - "8085:80"
     depends_on:
