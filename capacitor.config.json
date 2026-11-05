@@ -1,0 +1,18 @@
+{
+  "appId": "com.family.llmwiki.dashboard",
+  "appName": "가족 LLM WIKI 대시보드",
+  "webDir": ".",
+  "bundledWebRuntime": false,
+  "server": {
+    "cleartext": true
+  },
+  "android": {
+    "backgroundColor": "#F5F2EC",
+    "allowMixedContent": true
+  },
+  "ios": {
+    "backgroundColor": "#F5F2EC",
+    "preferredContentMode": "mobile"
+  }
+}
+

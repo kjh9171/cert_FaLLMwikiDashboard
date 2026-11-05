@@ -1,0 +1,56 @@
+{
+  "name": "가족 LLM WIKI 대시보드 & 가계부/영수증",
+  "short_name": "가족대시보드",
+  "description": "가족 일정, 영수증 OCR 관리, 가계부 및 온디바이스 AI 비서 통합 PWA",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#F5F2EC",
+  "theme_color": "#2D3748",
+  "categories": ["lifestyle", "finance", "productivity"],
+  "icons": [
+    {
+      "src": "./assets/icons/favicon.png",
+      "sizes": "32x32",
+      "type": "image/png"
+    },
+    {
+      "src": "./assets/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "./assets/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "./assets/icons/apple-touch-icon.png",
+      "sizes": "180x180",
+      "type": "image/png"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "영수증 스캐너",
+      "short_name": "영수증",
+      "description": "스마트 영수증 OCR 스캐너 바로가기",
+      "url": "./index.html?tab=finance"
+    },
+    {
+      "name": "가족 AI 비서",
+      "short_name": "AI비서",
+      "description": "가족 WIKI LLM 비서 대화 바로가기",
+      "url": "./index.html?tab=llm-wiki"
+    },
+    {
+      "name": "가족 캘린더",
+      "short_name": "캘린더",
+      "description": "일정 및 할 일 바로가기",
+      "url": "./index.html?tab=dashboard"
+    }
+  ]
+}
+

@@ -1,0 +1,32 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+.venv/
+env/
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Virtualenv
+.venv
+
+# macOS
+.DS_Store
+
+# Local dev DB
+*.db
+*.sqlite
+*.sqlite3
+
+# Docker / local logs
+*.log
+/backend/uploads/*.jpg
+/backend/uploads/*.jpeg
+/backend/uploads/*.png
+/backend/uploads/*.pdf
+
+# Environment
+.env
