@@ -1,25 +1,10 @@
 <!DOCTYPE html>
 <html lang="ko">
-
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>가족 LLM WIKI 대시보드 & 가계부/영수증 시스템</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>가족 LLM WIKI 대시보드 - 내 일정 & 가계부</title>
     
-    <!-- PWA Web App Manifest & Meta Tags -->
-    <link rel="manifest" href="./manifest.json">
-    <meta name="theme-color" content="#2D3748">
-    <meta name="mobile-web-app-capable" content="yes">
-    <meta name="application-name" content="가족대시보드">
-    
-    <!-- iOS Web Clip & Standalone App Support -->
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="가족대시보드">
-    <link rel="apple-touch-icon" href="./assets/icons/apple-touch-icon.png">
-    <link rel="icon" type="image/png" sizes="32x32" href="./assets/icons/favicon.png">
-    <link rel="icon" type="image/png" sizes="192x192" href="./assets/icons/icon-192.png">
-
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Chart.js CDN -->
@@ -29,2836 +14,523 @@
             theme: {
                 extend: {
                     colors: {
-                        brand: {
-                            bg: '#F5F2EC',
-                            card: '#FFFFFF',
-                            text: '#2D3748',
-                            muted: '#718096',
-                            accent: '#4A5568'
-                        },
-                        tag: {
-                            sky: { bg: '#FFF5F5', text: '#C53030', border: '#FEB2B2' },
-                            bada: { bg: '#FEFCBF', text: '#9B6D00', border: '#F6E05E' },
-                            jihoon: { bg: '#EBF8FF', text: '#2B6CB0', border: '#63B3ED' },
-                            minseo: { bg: '#F0FFF4', text: '#276749', border: '#68D391' },
-                            family: { bg: '#FAF5FF', text: '#6B46C1', border: '#D6BCFA' }
-                        }
+                        brand: { bg: '#F5F2EC', card: '#FFFFFF', text: '#2D3748', muted: '#718096' },
+                        jihoon: { bg: '#EBF8FF', text: '#2B6CB0', border: '#63B3ED' },
+                        minseo: { bg: '#F0FFF4', text: '#276749', border: '#68D391' },
                     }
                 }
             }
         }
     </script>
     <style>
-        body {
-            background-color: #F5F2EC;
-            color: #2D3748;
-            font-family: -apple-system, BlinkMacSystemFont, "Pretendard", "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-            overflow-x: hidden;
-        }
-
-        .chart-container {
-            position: relative;
-            width: 100%;
-            max-width: 600px;
-            margin-left: auto;
-            margin-right: auto;
-            height: 240px;
-            max-height: 260px;
-        }
-
-        .chart-container-financial {
-            position: relative;
-            width: 100%;
-            max-width: 500px;
-            margin-left: auto;
-            margin-right: auto;
-            height: 220px;
-            max-height: 240px;
-        }
-
-        .custom-scrollbar::-webkit-scrollbar {
-            width: 5px;
-            height: 5px;
-        }
-
-        .custom-scrollbar::-webkit-scrollbar-track {
-            background: #F1F1F1;
-            border-radius: 4px;
-        }
-
-        .custom-scrollbar::-webkit-scrollbar-thumb {
-            background: #CBD5E0;
-            border-radius: 4px;
-        }
-
-        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-            background: #A0AEC0;
-        }
-
-        .ticker-wrap {
-            width: 100%;
-            overflow: hidden;
-            white-space: nowrap;
-        }
-
-        .ticker-move {
-            display: inline-block;
-            animation: ticker 35s linear infinite;
-        }
-
-        @keyframes ticker {
-            0% {
-                transform: translate3d(0, 0, 0);
-            }
-
-            100% {
-                transform: translate3d(-50%, 0, 0);
-            }
-        }
-
-        .tab-btn.active {
-            background-color: #2D3748;
-            color: #FFFFFF;
-            font-weight: 600;
-        }
-
-        /* Laser Scan Line Effect for OCR */
-        .laser-scan-container {
-            position: relative;
-            overflow: hidden;
-        }
-
-        .laser-line {
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            height: 3px;
-            background: linear-gradient(90deg, rgba(168, 85, 247, 0) 0%, rgba(168, 85, 247, 1) 50%, rgba(168, 85, 247, 0) 100%);
-            box-shadow: 0 0 10px #A855F7;
-            animation: scanLaser 1.5s ease-in-out infinite alternate;
-        }
-
-        @keyframes scanLaser {
-            0% {
-                top: 0%;
-            }
-
-            100% {
-                top: 96%;
-            }
-        }
+        body { background-color: #F5F2EC; color: #2D3748; font-family: -apple-system, BlinkMacSystemFont, "Pretendard", "Segoe UI", Roboto, sans-serif; overflow-x: hidden; }
+        .fade-in { animation: fadeIn 0.3s ease-in; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .empty-state { opacity: 0.5; font-style: italic; text-align: center; padding: 2rem; color: #9CA3AF; }
     </style>
 </head>
+<body class="min-h-screen flex flex-col">
 
-<body class="min-h-screen flex flex-col justify-between">
-
-    <!-- Top Navigation Header -->
-    <header class="bg-white/80 backdrop-blur-md border-b border-gray-200 sticky top-0 z-50 px-4 py-3 shadow-sm">
+    <!-- Header -->
+    <header class="bg-white border-b border-gray-200 sticky top-0 z-40 shadow-sm px-4 py-3">
         <div class="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-3">
-            <div class="flex items-center gap-3 flex-wrap">
-                <span class="text-2xl font-bold tracking-tight text-gray-800">🏡 가족 LLM WIKI 대시보드</span>
-                <span class="bg-amber-100 text-amber-800 text-xs px-2.5 py-1 rounded-full font-medium">Local-First RAG &
-                    Finance</span>
-                <span id="backend-status-badge"
-                    class="bg-gray-100 text-gray-600 text-xs px-2.5 py-1 rounded-full font-semibold flex items-center gap-1.5 border border-gray-200">
-                    <span class="w-2 h-2 rounded-full bg-gray-400"></span> Backend 확인 중...
+            <div class="flex items-center gap-3">
+                <span class="text-2xl font-bold text-gray-800">🏡 가족 LLM WIKI 대시보드</span>
+                <span id="backend-status" class="bg-amber-100 text-amber-800 text-xs px-2.5 py-1 rounded-full font-semibold">
+                    Backend 확인 중...
                 </span>
             </div>
 
-            <!-- Global Tabs Navigation & App Controls -->
-            <div class="flex items-center gap-2 flex-wrap">
-                <!-- Family Member Selector -->
-                <div class="flex items-center gap-2 bg-gray-100 p-1 rounded-xl border border-gray-200">
-                    <label class="text-[10px] text-gray-500 font-bold uppercase mr-1">가족 구성원</label>
-                    <select id="member-select" class="bg-white text-xs font-semibold px-2 py-1 rounded border border-gray-200 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 cursor-pointer">
-                        <option value="">전체 가구원</option>
-                        <!-- 옵션은 JS로 동적 생성 -->
-                    </select>
-                    <button onclick="openNewUserModal()" class="bg-blue-600 hover:bg-blue-700 text-white text-[10px] px-1.5 py-1 rounded font-bold shadow-xs">
-                        + 사용자
-                    </button>
-                </div>
-                <nav class="hidden md:flex items-center bg-gray-100 p-1 rounded-xl gap-1">
-                    <button onclick="switchTab('dashboard')" id="tab-btn-dashboard" class="tab-btn active px-3.5 py-1.5 text-xs md:text-sm rounded-lg transition-all">
-                        📌 메인 대시보드
-                    </button>
-                    <button onclick="switchTab('finance')" id="tab-btn-finance" class="tab-btn px-3.5 py-1.5 text-xs md:text-sm rounded-lg transition-all text-gray-600 hover:text-gray-900">
-                        💰 가계부 & 영수증
-                    </button>
-                    <button onclick="switchTab('llm-wiki')" id="tab-btn-llm-wiki" class="tab-btn px-3.5 py-1.5 text-xs md:text-sm rounded-lg transition-all text-gray-600 hover:text-gray-900">
-                        🤖 AI WIKI 비서
-                    </button>
-                    <button onclick="switchTab('docs-api')" id="tab-btn-docs-api" class="tab-btn px-3.5 py-1.5 text-xs md:text-sm rounded-lg transition-all text-gray-600 hover:text-gray-900">
-                        📖 시스템 & API 명세서
-                    </button>
-                </nav>
-
-                <!-- PWA Install Button & Screen WakeLock Toggle -->
-                <div class="flex items-center gap-1.5">
-                    <button onclick="installPWAApp()" id="pwa-install-btn" class="bg-blue-600 hover:bg-blue-700 text-white text-xs px-2.5 py-1.5 rounded-lg font-bold flex items-center gap-1 shadow-xs transition-colors" title="홈 화면에 앱으로 설치">
-                        <span>📲</span>
-                        <span class="hidden sm:inline">앱 설치</span>
-                    </button>
-                    <button onclick="toggleScreenWakeLock()" id="wakelock-btn" class="bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs px-2.5 py-1.5 rounded-lg font-semibold flex items-center gap-1 transition-colors" title="거실 월패드용 상시 화면 켜짐 유지">
-                        <span id="wakelock-icon">💡</span>
-                        <span class="hidden lg:inline" id="wakelock-text">화면 켜짐 유지</span>
-                    </button>
-                </div>
+            <!-- 사용자 선택 영역 -->
+            <div class="flex items-center gap-3 bg-gray-100 p-2 rounded-xl border border-gray-200">
+                <label class="text-[10px] text-gray-500 font-bold uppercase mr-1">내 계정</label>
+                <select id="member-select" class="bg-white text-xs font-semibold px-2.5 py-1.5 rounded border border-gray-200 focus:outline-none focus:border-blue-500 cursor-pointer min-w-[140px]">
+                    <option value="">사용자 선택...</option>
+                </select>
+                <button onclick="openUserModal()" class="bg-blue-600 hover:bg-blue-700 text-white text-xs px-2 py-1.5 rounded font-bold shadow-xs">+ 사용자 등록</button>
             </div>
+
+            <nav class="hidden md:flex items-center bg-gray-100 p-1 rounded-xl gap-1">
+                <button onclick="switchTab('dashboard')" id="tab-dashboard" class="tab-btn active px-3 py-1.5 text-xs rounded-lg transition-all">📌 내 대시보드</button>
+                <button onclick="switchTab('schedule')" id="tab-schedule" class="tab-btn px-3 py-1.5 text-xs rounded-lg transition-all text-gray-600 hover:text-gray-900">📅 내 일정</button>
+                <button onclick="switchTab('todo')" id="tab-todo" class="tab-btn px-3 py-1.5 text-xs rounded-lg transition-all text-gray-600 hover:text-gray-900">✅ 내 할일</button>
+                <button onclick="switchTab('finance')" id="tab-finance" class="tab-btn px-3 py-1.5 text-xs rounded-lg transition-all text-gray-600 hover:text-gray-900">💰 내 가계부</button>
+            </nav>
         </div>
     </header>
 
-    <!-- Main Container -->
+    <!-- Main -->
     <main class="max-w-7xl mx-auto w-full px-4 py-6 flex-grow">
 
-        <!-- ================= TAB 1: MAIN DASHBOARD ================= -->
-        <section id="view-dashboard" class="space-y-6">
-
-            <!-- Top Dashboard Header: Clock & Weather Carousel -->
-            <div class="grid grid-cols-1 lg:grid-cols-12 gap-5 items-stretch">
-                <!-- Digital Clock Card -->
-                <div
-                    class="lg:col-span-5 bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex flex-col justify-center">
-                    <div class="text-gray-500 text-sm font-semibold mb-1" id="clock-date-str">11월 5일 목요일</div>
-                    <div class="flex items-baseline gap-2">
-                        <span class="text-gray-600 text-2xl font-bold" id="clock-ampm">오후</span>
-                        <span class="text-6xl font-extrabold text-gray-800 tracking-tight" id="clock-time">2:30</span>
-                        <span class="text-gray-400 text-sm font-mono" id="clock-sec">:00</span>
-                    </div>
-                </div>
-
-                <!-- Weather & Fine Dust Card -->
-                <div
-                    class="lg:col-span-7 bg-white p-5 rounded-2xl shadow-sm border border-gray-100 flex flex-col justify-between">
-                    <div class="flex items-center justify-between mb-3">
-                        <div class="flex items-center gap-3">
-                            <div
-                                class="bg-blue-500 text-white w-14 h-14 rounded-2xl flex flex-col items-center justify-center font-bold shadow-md shadow-blue-200">
-                                <span class="text-xs font-normal">미세먼지</span>
-                                <span class="text-sm">😊 좋음</span>
-                            </div>
-                            <div>
-                                <h3 class="text-lg font-bold text-gray-800">나갈 때 나들이하기 좋은 날씨예요</h3>
-                                <p class="text-xs text-gray-500">오늘 최고 21°C / 최저 12°C · 강수확률 5% · 습도 45%</p>
-                            </div>
-                        </div>
-                        <span class="bg-emerald-50 text-emerald-700 text-xs px-2.5 py-1 rounded-full font-semibold">실시간
-                            동기화</span>
-                    </div>
-
-                    <!-- Weekly Forecast Row -->
-                    <div class="grid grid-cols-7 gap-1 text-center bg-gray-50 p-2 rounded-xl text-xs">
-                        <div
-                            class="bg-white p-1.5 rounded-lg shadow-2xs font-semibold text-blue-600 border border-blue-100">
-                            <div>오늘 11/5</div>
-                            <div class="my-0.5 text-base">☀️</div>
-                            <div>21° <span class="text-gray-400 text-[10px]">12°</span></div>
-                            <div class="text-[9px] text-blue-500">비 5%</div>
-                        </div>
-                        <div class="p-1.5">
-                            <div class="text-gray-500">금 11/6</div>
-                            <div class="my-0.5 text-base">🌤️</div>
-                            <div>22° <span class="text-gray-400 text-[10px]">13°</span></div>
-                            <div class="text-[9px] text-gray-400">비 10%</div>
-                        </div>
-                        <div class="p-1.5">
-                            <div class="text-gray-500">토 11/7</div>
-                            <div class="my-0.5 text-base">☀️</div>
-                            <div>23° <span class="text-gray-400 text-[10px]">12°</span></div>
-                            <div class="text-[9px] text-gray-400">비 0%</div>
-                        </div>
-                        <div class="p-1.5">
-                            <div class="text-gray-500">일 11/8</div>
-                            <div class="my-0.5 text-base">☁️</div>
-                            <div>20° <span class="text-gray-400 text-[10px]">11°</span></div>
-                            <div class="text-[9px] text-gray-400">비 20%</div>
-                        </div>
-                        <div class="p-1.5">
-                            <div class="text-gray-500">월 11/9</div>
-                            <div class="my-0.5 text-base">🌤️</div>
-                            <div>19° <span class="text-gray-400 text-[10px]">10°</span></div>
-                            <div class="text-[9px] text-gray-400">비 10%</div>
-                        </div>
-                        <div class="p-1.5">
-                            <div class="text-gray-500">화 11/10</div>
-                            <div class="my-0.5 text-base">☀️</div>
-                            <div>22° <span class="text-gray-400 text-[10px]">11°</span></div>
-                            <div class="text-[9px] text-gray-400">비 0%</div>
-                        </div>
-                        <div class="p-1.5">
-                            <div class="text-gray-500">수 11/11</div>
-                            <div class="my-0.5 text-base">🌤️</div>
-                            <div>21° <span class="text-gray-400 text-[10px]">12°</span></div>
-                            <div class="text-[9px] text-gray-400">비 10%</div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Middle Main Content Grid (Calendar + Todos + Growth) -->
-            <div class="grid grid-cols-1 lg:grid-cols-12 gap-5">
-
-                <!-- Left Column (5 Cols): Calendar & Timeline -->
-                <div class="lg:col-span-5 space-y-5">
-
-                    <!-- 1. Family Calendar Widget -->
-                    <div class="bg-white p-5 rounded-2xl shadow-sm border border-gray-100">
-                        <div class="flex items-center justify-between mb-3">
-                            <div class="flex items-center gap-2">
-                                <h2 class="text-lg font-bold text-gray-800">2026년 11월</h2>
-                                <span class="text-xs text-gray-400 font-normal">가족 일정</span>
-                            </div>
-                            <!-- Category Swatches Legend -->
-                            <div class="flex items-center gap-1.5 text-xs">
-                                <span class="inline-flex items-center gap-1"><span
-                                        class="w-2 h-2 rounded-full bg-pink-400"></span>하늘</span>
-                                <span class="inline-flex items-center gap-1"><span
-                                        class="w-2 h-2 rounded-full bg-amber-400"></span>바다</span>
-                                <span class="inline-flex items-center gap-1"><span
-                                        class="w-2 h-2 rounded-full bg-blue-500"></span>지훈</span>
-                                <span class="inline-flex items-center gap-1"><span
-                                        class="w-2 h-2 rounded-full bg-emerald-500"></span>민서</span>
-                                <span class="inline-flex items-center gap-1"><span
-                                        class="w-2 h-2 rounded-full bg-purple-500"></span>가족</span>
-                            </div>
-                        </div>
-
-                        <!-- Calendar Days Header -->
-                        <div
-                            class="grid grid-cols-7 text-center text-xs font-bold text-gray-500 mb-2 border-b border-gray-100 pb-1">
-                            <span class="text-red-500">일</span>
-                            <span>월</span>
-                            <span>화</span>
-                            <span>수</span>
-                            <span>목</span>
-                            <span>금</span>
-                            <span class="text-blue-500">토</span>
-                        </div>
-
-                        <!-- Mini Calendar Grid -->
-                        <div class="grid grid-cols-7 text-center text-xs gap-y-2 text-gray-700 font-medium">
-                            <span class="text-red-400 py-1 cursor-pointer hover:bg-gray-50 rounded"
-                                onclick="selectCalendarDate('11/1')">1</span>
-                            <span class="py-1 cursor-pointer hover:bg-gray-50 rounded"
-                                onclick="selectCalendarDate('11/2')">2</span>
-                            <span class="py-1 cursor-pointer hover:bg-gray-50 rounded"
-                                onclick="selectCalendarDate('11/3')">3</span>
-                            <span class="py-1 cursor-pointer hover:bg-gray-50 rounded"
-                                onclick="selectCalendarDate('11/4')">4</span>
-
-                            <!-- Today: Nov 5 -->
-                            <div class="relative py-1 bg-red-50 text-red-600 rounded-lg font-bold border border-red-200 cursor-pointer"
-                                onclick="selectCalendarDate('11/5 (오늘)')">
-                                <span
-                                    class="bg-red-500 text-white w-5 h-5 rounded-full inline-flex items-center justify-center text-[10px] mx-auto">5</span>
-                                <div class="text-[9px] text-gray-500 font-normal mt-0.5">+2개 더</div>
-                            </div>
-
-                            <div class="py-1 cursor-pointer hover:bg-gray-50 rounded"
-                                onclick="selectCalendarDate('11/6')">
-                                <span>6</span>
-                                <div class="text-[9px] text-purple-600 font-semibold bg-purple-50 rounded mt-0.5">속초 여행
-                                </div>
-                            </div>
-                            <div class="py-1 text-blue-500 cursor-pointer hover:bg-gray-50 rounded"
-                                onclick="selectCalendarDate('11/7')">
-                                <span>7</span>
-                                <div class="text-[9px] text-gray-400 font-normal">+2개 더</div>
-                            </div>
-
-                            <div class="py-1 text-red-500 cursor-pointer hover:bg-gray-50 rounded"
-                                onclick="selectCalendarDate('11/8')">
-                                <span>8</span>
-                                <div class="bg-blue-100 text-blue-800 text-[9px] rounded px-1 mt-0.5 truncate">건강 검진
-                                </div>
-                            </div>
-                            <div class="py-1 cursor-pointer hover:bg-gray-50 rounded"
-                                onclick="selectCalendarDate('11/9')">
-                                <span>9</span>
-                                <div class="bg-pink-100 text-pink-800 text-[9px] rounded px-1 mt-0.5 truncate">미술 교실
-                                </div>
-                            </div>
-                            <div class="py-1 cursor-pointer hover:bg-gray-50 rounded"
-                                onclick="selectCalendarDate('11/10')">
-                                <span>10</span>
-                                <div class="text-[9px] text-gray-400 font-normal">+2개 더</div>
-                            </div>
-                            <div class="py-1 cursor-pointer hover:bg-gray-50 rounded"
-                                onclick="selectCalendarDate('11/11')">
-                                <span>11</span>
-                                <div class="bg-amber-100 text-amber-800 text-[9px] rounded px-1 mt-0.5 truncate">수영 수업
-                                </div>
-                            </div>
-                            <div class="py-1 cursor-pointer hover:bg-gray-50 rounded"
-                                onclick="selectCalendarDate('11/12')">12</div>
-                            <div class="py-1 cursor-pointer hover:bg-gray-50 rounded"
-                                onclick="selectCalendarDate('11/13')">13</div>
-                            <div class="py-1 text-blue-500 cursor-pointer hover:bg-gray-50 rounded"
-                                onclick="selectCalendarDate('11/14')">
-                                <span>14</span>
-                                <div class="bg-amber-100 text-amber-800 text-[9px] rounded px-1 mt-0.5 truncate">가족
-                                    피자...</div>
-                            </div>
-
-                            <div class="py-1 text-red-500 cursor-pointer hover:bg-gray-50 rounded"
-                                onclick="selectCalendarDate('11/15')">
-                                <span>15</span>
-                                <div class="bg-pink-100 text-pink-800 text-[9px] rounded px-1 mt-0.5 truncate">동물원 나...
-                                </div>
-                            </div>
-                            <div class="py-1 cursor-pointer hover:bg-gray-50 rounded"
-                                onclick="selectCalendarDate('11/16')">16</div>
-                            <div class="py-1 cursor-pointer hover:bg-gray-50 rounded"
-                                onclick="selectCalendarDate('11/17')">
-                                <span>17</span>
-                                <div class="bg-purple-100 text-purple-800 text-[9px] rounded px-1 mt-0.5 truncate">영화 보는
-                                    날</div>
-                            </div>
-                            <div class="py-1 cursor-pointer hover:bg-gray-50 rounded"
-                                onclick="selectCalendarDate('11/18')">18</div>
-                            <div class="py-1 cursor-pointer hover:bg-gray-50 rounded"
-                                onclick="selectCalendarDate('11/19')">19</div>
-                            <div class="py-1 cursor-pointer hover:bg-gray-50 rounded"
-                                onclick="selectCalendarDate('11/20')">
-                                <span>20</span>
-                                <div
-                                    class="bg-amber-100 text-amber-800 text-[9px] rounded px-1 mt-0.5 truncate font-bold">
-                                    바다 생일</div>
-                            </div>
-                            <div class="py-1 text-blue-500 cursor-pointer hover:bg-gray-50 rounded"
-                                onclick="selectCalendarDate('11/21')">21</div>
-
-                            <div class="py-1 text-red-500">22</div>
-                            <div class="py-1">23</div>
-                            <div class="py-1">24</div>
-                            <div class="py-1">25</div>
-                            <div class="py-1">26</div>
-                            <div class="py-1">27</div>
-                            <div class="py-1 text-blue-500">28</div>
-                        </div>
-                    </div>
-
-                    <!-- 내 일정 목록 (사용자별 필터링) -->
-                    <div class="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 space-y-3">
-                        <div class="flex items-center justify-between mb-2">
-                            <div class="flex items-center gap-2">
-                                <span class="text-purple-600 font-bold">📅 내 일정</span>
-                                <span class="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded font-semibold" id="cal-event-count">0개</span>
-                            </div>
-                            <button onclick="openNewCalendarModal()"
-                                class="bg-purple-600 hover:bg-purple-700 text-white text-[10px] px-2 py-1 rounded font-bold shadow-xs">
-                                + 일정 등록
-                            </button>
-                        </div>
-                        <div id="calendar-events-container" class="space-y-2 text-xs">
-                            <!-- 일정 항목은 JS로 동적 생성 -->
-                        </div>
-                    </div>
-
-                    <!-- 2. Trip Checklist Card (여행 준비물) -->
-                    <div class="bg-white p-5 rounded-2xl shadow-sm border border-gray-100">
-                        <div class="flex items-center justify-between mb-2">
-                            <div class="flex items-center gap-2">
-                                <span class="text-emerald-600 font-bold">🎒 여행 준비물</span>
-                                <span class="text-xs bg-red-100 text-red-700 px-2 py-0.5 rounded font-semibold">내일 출발 ·
-                                    바닷가 가족 여행</span>
-                            </div>
-                            <span class="text-xs text-gray-500 font-mono font-bold" id="checklist-counter">챙김
-                                3/17</span>
-                        </div>
-
-                        <!-- Progress Bar -->
-                        <div class="w-full bg-gray-100 h-2.5 rounded-full mb-3 overflow-hidden">
-                            <div id="checklist-progressbar"
-                                class="bg-emerald-500 h-full rounded-full transition-all duration-300"
-                                style="width: 17.6%;"></div>
-                        </div>
-
-                        <!-- Quick Action & Filter -->
-                        <div
-                            class="flex justify-between items-center text-[11px] text-gray-400 mb-2 border-b border-gray-50 pb-1">
-                            <span>터치하여 체크/해제</span>
-                            <button onclick="checkAllChecklist()" class="text-emerald-600 hover:underline">모두
-                                챙김</button>
-                        </div>
-
-                        <!-- Checklist Items Grid -->
-                        <div class="grid grid-cols-2 md:grid-cols-4 gap-2 text-xs" id="checklist-container">
-                            <!-- Items auto injected by JS -->
-                        </div>
-                    </div>
-
-                    <!-- 3. Today & Tomorrow Timeline Card -->
-                    <div class="bg-white p-5 rounded-2xl shadow-sm border border-gray-100">
-                        <div class="grid grid-cols-2 gap-4">
-                            <!-- Today Timeline -->
-                            <div>
-                                <h4 class="text-xs font-bold text-red-600 mb-3 flex items-center gap-1">
-                                    <span>📍 오늘</span>
-                                    <span class="text-gray-400 font-normal">11/5 (목)</span>
-                                </h4>
-                                <div class="space-y-3 text-xs">
-                                    <div class="border-l-2 border-pink-400 pl-2">
-                                        <div class="text-[10px] text-gray-400 font-mono">10:30 오전</div>
-                                        <div class="font-bold text-gray-800">하늘 도서관 그림책 시간</div>
-                                    </div>
-                                    <div class="border-l-2 border-amber-400 pl-2">
-                                        <div class="text-[10px] text-gray-400 font-mono">3:00 오후</div>
-                                        <div class="font-bold text-gray-800">바다 공원 산책</div>
-                                    </div>
-                                    <div class="text-[10px] text-gray-400 pt-2 border-t border-gray-100">
-                                        다음 11/7 · 가족 가을 소풍
-                                    </div>
-                                </div>
-                            </div>
-
-                            <!-- Tomorrow Timeline -->
-                            <div>
-                                <h4 class="text-xs font-bold text-purple-600 mb-3 flex items-center gap-1">
-                                    <span>✈️ 내일</span>
-                                    <span class="text-gray-400 font-normal">11/6 (금)</span>
-                                </h4>
-                                <div class="space-y-3 text-xs">
-                                    <div class="border-l-2 border-purple-500 pl-2 bg-purple-50 p-1.5 rounded-r">
-                                        <div class="text-[10px] text-purple-600 font-semibold">종일</div>
-                                        <div class="font-bold text-purple-900">가족 바닷가 여행</div>
-                                    </div>
-                                    <div class="border-l-2 border-blue-400 pl-2">
-                                        <div class="text-[10px] text-gray-400 font-mono">11:00 오전</div>
-                                        <div class="font-bold text-gray-800">가족 주말 브런치</div>
-                                    </div>
-                                </div>
-                            </div>
+        <!-- Tab: Dashboard -->
+        <section id="view-dashboard" class="space-y-6 fade-in">
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+                    <h3 class="text-xs font-bold text-gray-400 uppercase mb-2">선택된 사용자</h3>
+                    <div class="flex items-center gap-3">
+                        <div class="w-12 h-12 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center font-bold text-xl" id="user-avatar">?</div>
+                        <div>
+                            <h2 class="text-lg font-bold text-gray-800" id="user-name">사용자를 선택하세요</h2>
+                            <p class="text-xs text-gray-500" id="user-role"></p>
                         </div>
                     </div>
                 </div>
 
-                <!-- Right Column (7 Cols): Member Todos & Growth Cards -->
-                <div class="lg:col-span-7 space-y-5">
-
-                    <!-- Member Todos (Jihoon & Minseo) Grid -->
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <!-- Jihoon Todo Card -->
-                        <div class="bg-white p-5 rounded-2xl shadow-sm border border-gray-100">
-                            <div class="flex items-center justify-between mb-3 border-b border-gray-100 pb-2">
-                                <h3 class="font-bold text-blue-700 flex items-center gap-1.5 text-sm">
-                                    <span class="w-2.5 h-2.5 rounded-full bg-blue-500"></span>
-                                    <span>지훈 할 일</span>
-                                </h3>
-                                <span class="bg-blue-50 text-blue-600 text-xs px-2 py-0.5 rounded-full font-bold"
-                                    id="jihoon-count">4</span>
-                            </div>
-                            <div class="space-y-2.5 text-xs" id="jihoon-todo-list">
-                                <!-- JS Dynamic items -->
-                            </div>
-                        </div>
-
-                        <!-- Minseo Todo Card -->
-                        <div class="bg-white p-5 rounded-2xl shadow-sm border border-gray-100">
-                            <div class="flex items-center justify-between mb-3 border-b border-gray-100 pb-2">
-                                <h3 class="font-bold text-emerald-700 flex items-center gap-1.5 text-sm">
-                                    <span class="w-2.5 h-2.5 rounded-full bg-emerald-500"></span>
-                                    <span>민서 할 일</span>
-                                </h3>
-                                <span class="bg-emerald-50 text-emerald-600 text-xs px-2 py-0.5 rounded-full font-bold"
-                                    id="minseo-count">5</span>
-                            </div>
-                            <div class="space-y-2.5 text-xs" id="minseo-todo-list">
-                                <!-- JS Dynamic items -->
-                            </div>
-                        </div>
+                <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+                    <h3 class="text-xs font-bold text-gray-400 uppercase mb-2">오늘의 일정</h3>
+                    <div id="dashboard-schedule" class="space-y-3">
+                        <div class="empty-state">사용자를 선택하면 일정이 표시됩니다.</div>
                     </div>
+                </div>
 
-                    <!-- Common Todos & Grocery Shopping List -->
-                    <div
-                        class="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 flex flex-col md:flex-row items-center justify-between gap-4 text-xs">
-                        <div class="flex items-center gap-2">
-                            <span class="bg-gray-100 text-gray-700 px-2 py-1 rounded font-bold">공통 할 일 · 1</span>
-                            <span class="text-gray-700 font-medium">· 가족 사진 고르기</span>
-                        </div>
-                        <div
-                            class="flex items-center gap-2 bg-amber-50 text-amber-900 px-3 py-1.5 rounded-xl border border-amber-200">
-                            <span class="font-bold text-amber-700">🛒 장보기 4</span>
-                            <span class="text-amber-800">우유 · 사과 · 식빵 · 요거트</span>
-                        </div>
-                    </div>
-
-                    <!-- Child Growth Tracker & Upcoming D-Days Grid -->
-                    <div class="grid grid-cols-1 md:grid-cols-12 gap-4">
-
-                        <!-- Child Growth Tracker Cards (7 Cols) -->
-                        <div class="md:col-span-7 bg-white p-5 rounded-2xl shadow-sm border border-gray-100 space-y-4">
-                            <h3 class="text-xs font-bold text-gray-500 uppercase tracking-wider">👶 아동 성장 레벨 트래커</h3>
-
-                            <!-- Maneul (하늘) Card -->
-                            <div class="flex items-center gap-3 bg-blue-50/50 p-3 rounded-xl border border-blue-100">
-                                <div
-                                    class="w-10 h-10 rounded-full bg-blue-500 text-white flex items-center justify-center font-bold text-sm shadow">
-                                    하
-                                </div>
-                                <div class="flex-grow">
-                                    <div class="flex items-center justify-between">
-                                        <span class="font-bold text-gray-800 text-sm">하늘</span>
-                                        <span
-                                            class="bg-blue-600 text-white text-[10px] font-bold px-2 py-0.5 rounded-full">Lv.6</span>
-                                        <span class="text-xs text-gray-500">6세 10개월</span>
-                                    </div>
-                                    <div class="w-full bg-gray-200 h-1.5 rounded-full my-1.5 overflow-hidden">
-                                        <div class="bg-blue-500 h-full rounded-full" style="width: 82%;"></div>
-                                    </div>
-                                    <div class="text-[10px] text-emerald-700 font-semibold">태어난 지 +2,520일 · 신장 120cm
-                                    </div>
-                                </div>
-                            </div>
-
-                            <!-- Bada (바다) Card -->
-                            <div class="flex items-center gap-3 bg-amber-50/50 p-3 rounded-xl border border-amber-100">
-                                <div
-                                    class="w-10 h-10 rounded-full bg-amber-500 text-white flex items-center justify-center font-bold text-sm shadow">
-                                    바
-                                </div>
-                                <div class="flex-grow">
-                                    <div class="flex items-center justify-between">
-                                        <span class="font-bold text-gray-800 text-sm">바다</span>
-                                        <span
-                                            class="bg-amber-600 text-white text-[10px] font-bold px-2 py-0.5 rounded-full">Lv.3</span>
-                                        <span class="text-xs text-gray-500">3세 11개월</span>
-                                    </div>
-                                    <div class="w-full bg-gray-200 h-1.5 rounded-full my-1.5 overflow-hidden">
-                                        <div class="bg-amber-500 h-full rounded-full" style="width: 94%;"></div>
-                                    </div>
-                                    <div class="text-[10px] text-emerald-700 font-semibold">태어난 지 +1,447일 · 신장 100cm
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Upcoming D-Days List (5 Cols) -->
-                        <div
-                            class="md:col-span-5 bg-white p-5 rounded-2xl shadow-sm border border-gray-100 flex flex-col justify-between">
-                            <h3 class="text-xs font-bold text-amber-700 flex items-center gap-1 mb-2">
-                                <span>🎉 다가오는 날</span>
-                            </h3>
-                            <div class="space-y-2 text-xs font-medium">
-                                <div class="flex items-center justify-between py-1 border-b border-gray-50">
-                                    <span class="text-amber-700 font-bold bg-amber-50 px-1.5 py-0.5 rounded">D-15</span>
-                                    <span class="text-gray-700 font-semibold">바다 생일</span>
-                                    <span class="text-gray-400 text-[10px]">11/20</span>
-                                </div>
-                                <div class="flex items-center justify-between py-1 border-b border-gray-50">
-                                    <span
-                                        class="text-purple-700 font-bold bg-purple-50 px-1.5 py-0.5 rounded">D-29</span>
-                                    <span class="text-gray-700">가족 기념일</span>
-                                    <span class="text-gray-400 text-[10px]">12/4</span>
-                                </div>
-                                <div class="flex items-center justify-between py-1 border-b border-gray-50">
-                                    <span class="text-pink-700 font-bold bg-pink-50 px-1.5 py-0.5 rounded">D-38</span>
-                                    <span class="text-gray-700">하늘 생일</span>
-                                    <span class="text-gray-400 text-[10px]">12/13</span>
-                                </div>
-                                <div class="flex items-center justify-between py-1 border-b border-gray-50">
-                                    <span
-                                        class="text-emerald-700 font-bold bg-emerald-50 px-1.5 py-0.5 rounded">D-52</span>
-                                    <span class="text-gray-700">민서 생일</span>
-                                    <span class="text-gray-400 text-[10px]">12/27</span>
-                                </div>
-                                <div class="flex items-center justify-between py-1">
-                                    <span class="text-blue-700 font-bold bg-blue-50 px-1.5 py-0.5 rounded">D-86</span>
-                                    <span class="text-gray-700">가족 여행 기념일</span>
-                                    <span class="text-gray-400 text-[10px]">1/30</span>
-                                </div>
-                            </div>
-                        </div>
+                <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+                    <h3 class="text-xs font-bold text-gray-400 uppercase mb-2">이번 달 가계부 요약</h3>
+                    <div class="space-y-4" id="dashboard-finance">
+                        <div class="empty-state">사용자를 선택하면 가계부가 표시됩니다.</div>
                     </div>
                 </div>
             </div>
         </section>
 
-
-        <!-- ================= TAB 2: HOUSEHOLD FINANCE & RECEIPTS ================= -->
-        <section id="view-finance" class="hidden space-y-6">
-
-            <!-- Summary KPI Cards -->
-            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                <!-- Monthly Income -->
-                <div class="bg-white p-5 rounded-2xl shadow-sm border border-gray-100">
-                    <div class="text-xs text-gray-500 font-bold mb-1">2026년 11월 총 수입</div>
-                    <div class="text-2xl font-black text-blue-600" id="total-income-text">₩ 5,800,000</div>
-                    <div class="text-[11px] text-blue-500 mt-1">▲ 지난달 대비 +3.2%</div>
-                </div>
-
-                <!-- Monthly Expense -->
-                <div class="bg-white p-5 rounded-2xl shadow-sm border border-gray-100">
-                    <div class="text-xs text-gray-500 font-bold mb-1">2026년 11월 총 지출</div>
-                    <div class="text-2xl font-black text-red-500" id="total-expense-text">₩ 2,435,000</div>
-                    <div class="text-[11px] text-red-400 mt-1" id="expense-diff-text">▼ 지난달 대비 -1.5% 감소</div>
-                </div>
-
-                <!-- Net Surplus -->
-                <div class="bg-white p-5 rounded-2xl shadow-sm border border-gray-100">
-                    <div class="text-xs text-gray-500 font-bold mb-1">이달의 순수 저축/잔액</div>
-                    <div class="text-2xl font-black text-emerald-600" id="net-savings-text">₩ 3,365,000</div>
-                    <div class="text-[11px] text-emerald-600 mt-1" id="savings-rate-text">저축 목표 달성률 84%</div>
-                </div>
-
-                <!-- Monthly Budget Gauge -->
-                <div class="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 flex flex-col justify-between">
-                    <div class="flex justify-between items-center text-xs">
-                        <span class="font-bold text-gray-700">월 예산 사용 현황</span>
-                        <span class="text-gray-500 font-mono" id="budget-ratio-text">2.4M / 3.0M</span>
-                    </div>
-                    <div class="w-full bg-gray-100 h-3 rounded-full overflow-hidden my-2">
-                        <div id="budget-progressbar"
-                            class="bg-amber-500 h-full rounded-full transition-all duration-300" style="width: 81.1%;">
-                        </div>
-                    </div>
-                    <div class="text-[10px] text-amber-700 font-semibold" id="budget-status-text">남은 예산: ₩ 565,000 (81%
-                        사용)</div>
-                </div>
+        <!-- Tab: Schedule -->
+        <section id="view-schedule" class="hidden space-y-6 fade-in">
+            <div class="flex items-center justify-between mb-4">
+                <h2 class="text-lg font-bold text-gray-800">📅 내 일정 관리</h2>
+                <button onclick="openScheduleModal()" class="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-xl font-bold text-xs shadow-sm">+ 일정 추가</button>
             </div>
-
-            <!-- Finance Visualization Row (Donut & Trend Line Chart) -->
-            <div class="grid grid-cols-1 lg:grid-cols-12 gap-5">
-                <!-- Category Expense Doughnut Chart -->
-                <div class="lg:col-span-5 bg-white p-5 rounded-2xl shadow-sm border border-gray-100">
-                    <div class="flex items-center justify-between mb-2">
-                        <h3 class="text-sm font-bold text-gray-800">📊 카테고리별 지출 비율</h3>
-                        <span class="text-xs text-gray-400">11월 실시간 기준</span>
-                    </div>
-                    <div class="chart-container-financial">
-                        <canvas id="expenseCategoryChart"></canvas>
-                    </div>
-                </div>
-
-                <!-- Income vs Expense Trend Bar Chart -->
-                <div class="lg:col-span-7 bg-white p-5 rounded-2xl shadow-sm border border-gray-100">
-                    <div class="flex items-center justify-between mb-2">
-                        <h3 class="text-sm font-bold text-gray-800">📈 최근 6개월 수입 / 지출 추이</h3>
-                        <div class="flex items-center gap-2 text-xs">
-                            <span class="inline-flex items-center gap-1"><span
-                                    class="w-2.5 h-2.5 rounded-full bg-blue-500"></span>수입</span>
-                            <span class="inline-flex items-center gap-1"><span
-                                    class="w-2.5 h-2.5 rounded-full bg-red-400"></span>지출</span>
-                        </div>
-                    </div>
-                    <div class="chart-container-financial">
-                        <canvas id="financeTrendChart"></canvas>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Receipt OCR Management & Recent Transactions Layout -->
-            <div class="grid grid-cols-1 lg:grid-cols-12 gap-5">
-
-                <!-- Receipt Scanner & OCR Simulation (5 Cols) -->
-                <div class="lg:col-span-5 bg-white p-5 rounded-2xl shadow-sm border border-gray-100 space-y-4">
-                    <div class="flex items-center justify-between border-b border-gray-100 pb-3">
-                        <div class="flex items-center gap-2">
-                            <span class="text-lg">🧾</span>
-                            <h3 class="text-sm font-bold text-gray-800">스마트 영수증 OCR 자동 스캐너</h3>
-                        </div>
-                        <span class="bg-purple-100 text-purple-800 text-[10px] font-bold px-2 py-0.5 rounded">AI 파싱
-                            온디바이스</span>
-                    </div>
-
-                    <!-- OCR Scanner Simulator Box with File Upload & Laser Animation -->
-                    <div id="ocr-dropzone"
-                        class="laser-scan-container bg-gray-50 border-2 border-dashed border-gray-300 rounded-2xl p-4 text-center space-y-3 cursor-pointer hover:border-purple-400 transition-colors">
-                        <div id="laser-line-element" class="laser-line hidden"></div>
-                        <div class="text-2xl">📸</div>
-                        <p class="text-xs text-gray-600 font-medium">실제 영수증 사진을 선택하거나 드래그하여 업로드하세요.</p>
-
-                        <div class="flex justify-center gap-2 flex-wrap">
-                            <label
-                                class="bg-gray-200 hover:bg-gray-300 text-gray-700 font-bold text-xs px-3 py-2 rounded-xl cursor-pointer transition-colors">
-                                📁 사진 파일 선택
-                                <input type="file" id="receipt-file-input" accept="image/*" class="hidden"
-                                    onchange="handleReceiptFileUpload(event)">
-                            </label>
-                            <button onclick="triggerOcrScanSimulation()"
-                                class="bg-purple-600 hover:bg-purple-700 text-white font-bold text-xs px-4 py-2 rounded-xl shadow-xs transition-colors">
-                                🔍 데모 영수증 스캔 실행
-                            </button>
-                        </div>
-                        <div id="file-preview-name" class="text-[11px] text-purple-700 font-mono hidden"></div>
-                    </div>
-
-                    <!-- Scanned Receipt Result Card -->
-                    <div id="ocr-result-card"
-                        class="bg-purple-50/50 border border-purple-200 rounded-xl p-4 space-y-2 text-xs">
-                        <div
-                            class="flex items-center justify-between font-bold text-purple-900 border-b border-purple-200 pb-1.5">
-                            <span id="ocr-store-name">이마트 속초점</span>
-                            <span id="ocr-date">2026-11-04 15:42</span>
-                        </div>
-                        <div class="space-y-1 font-mono text-gray-700 text-[11px]" id="ocr-items-list">
-                            <div class="flex justify-between"><span>수영복 세트 (하늘)</span><span>₩ 45,000</span></div>
-                            <div class="flex justify-between"><span>유기농 우유 1L</span><span>₩ 3,400</span></div>
-                            <div class="flex justify-between"><span>아이스팩 패크</span><span>₩ 2,500</span></div>
-                        </div>
-                        <div
-                            class="flex items-center justify-between pt-2 border-t border-purple-200 font-bold text-gray-900 text-xs">
-                            <span>자동 인식 합계</span>
-                            <span class="text-purple-700 text-sm" id="ocr-total-amount">₩ 50,900</span>
-                        </div>
-                        <button onclick="confirmOcrToTransaction()"
-                            class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2 rounded-lg text-xs transition-colors mt-2 shadow-sm">
-                            ✓ 가계 지출 내역으로 즉시 등록 (원장 반영)
-                        </button>
-                    </div>
-                </div>
-
-                <!-- Recent Household Transactions Table (7 Cols) -->
-                <div
-                    class="lg:col-span-7 bg-white p-5 rounded-2xl shadow-sm border border-gray-100 flex flex-col justify-between">
-                    <div>
-                        <div class="flex items-center justify-between mb-4 flex-wrap gap-2">
-                            <div class="flex items-center gap-2">
-                                <h3 class="text-sm font-bold text-gray-800">💳 최근 수입/지출 상세 내역</h3>
-                                <!-- Filter buttons -->
-                                <div class="flex gap-1 text-[11px]">
-                                    <button onclick="filterTransactions('ALL')" id="filter-btn-ALL"
-                                        class="bg-gray-800 text-white px-2 py-0.5 rounded font-medium">전체</button>
-                                    <button onclick="filterTransactions('EXPENSE')" id="filter-btn-EXPENSE"
-                                        class="bg-gray-100 text-gray-600 hover:bg-gray-200 px-2 py-0.5 rounded font-medium">지출만</button>
-                                    <button onclick="filterTransactions('INCOME')" id="filter-btn-INCOME"
-                                        class="bg-gray-100 text-gray-600 hover:bg-gray-200 px-2 py-0.5 rounded font-medium">수입만</button>
-                                </div>
-                            </div>
-                            <div class="flex gap-2">
-                                <button onclick="exportTransactionsCSV()"
-                                    class="bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-semibold px-2.5 py-1.5 rounded-lg">
-                                    📥 CSV 다운로드
-                                </button>
-                                <button onclick="openNewTransactionModal()"
-                                    class="bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold px-3 py-1.5 rounded-lg shadow-xs">
-                                    + 내역 수동 입력
-                                </button>
-                            </div>
-                        </div>
-
-                        <!-- Transactions List Table -->
-                        <div class="overflow-x-auto">
-                            <table class="w-full text-left text-xs">
-                                <thead>
-                                    <tr class="bg-gray-50 text-gray-500 font-semibold border-b border-gray-100">
-                                        <th class="p-2">날짜</th>
-                                        <th class="p-2">구분</th>
-                                        <th class="p-2">항목 / 내용</th>
-                                        <th class="p-2">결제수단</th>
-                                        <th class="p-2 text-right">금액</th>
-                                        <th class="p-2 text-center">관리</th>
-                                    </tr>
-                                </thead>
-                                <tbody class="divide-y divide-gray-100" id="finance-table-body">
-                                    <!-- JS dynamic items -->
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-
-                    <div
-                        class="text-[11px] text-gray-400 pt-3 border-t border-gray-100 flex justify-between items-center">
-                        <span>💡 영수증 OCR 스캔 및 수동 등록 시 카테고리 도넛 차트 및 총 지출이 실시간 갱신됩니다.</span>
-                        <span class="font-mono" id="tx-count-text">총 5건</span>
-                    </div>
-                </div>
-
+            <div id="schedule-list" class="space-y-3">
+                <div class="empty-state">사용자를 선택하면 일정이 표시됩니다.</div>
             </div>
         </section>
 
+        <!-- Tab: Todo -->
+        <section id="view-todo" class="hidden space-y-6 fade-in">
+            <div class="flex items-center justify-between mb-4">
+                <h2 class="text-lg font-bold text-gray-800">✅ 내 할일 관리</h2>
+                <button onclick="openTodoModal()" class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-xl font-bold text-xs shadow-sm">+ 할일 추가</button>
+            </div>
+            <div id="todo-list" class="space-y-3">
+                <div class="empty-state">사용자를 선택하면 할일이 표시됩니다.</div>
+            </div>
+        </section>
 
-        <!-- ================= TAB 3: FAMILY LLM WIKI ================= -->
-        <section id="view-llm-wiki" class="hidden space-y-6">
-            <div
-                class="bg-amber-50 border border-amber-200 p-4 rounded-2xl flex items-center justify-between flex-wrap gap-2">
-                <div>
-                    <h2 class="text-lg font-bold text-amber-900">🤖 가족 지식 AI 비서 (Local RAG WIKI Engine)</h2>
-                    <p class="text-xs text-amber-700">가족 문서(Markdown), 캘린더, Todo, 가계 지출 데이터와 실시간 연동되어 답변을 생성합니다.</p>
+        <!-- Tab: Finance -->
+        <section id="view-finance" class="hidden space-y-6 fade-in">
+            <!-- KPI -->
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+                <div class="bg-white p-5 rounded-2xl shadow-sm border border-gray-100">
+                    <div class="text-xs text-gray-500 font-bold">총 수입</div>
+                    <div class="text-2xl font-black text-blue-600" id="kpi-income">₩ 0</div>
                 </div>
-                <span class="bg-amber-600 text-white text-xs px-3 py-1 rounded-full font-bold">Ollama Llama3 & pgvector
-                    연동중</span>
+                <div class="bg-white p-5 rounded-2xl shadow-sm border border-gray-100">
+                    <div class="text-xs text-gray-500 font-bold">총 지출</div>
+                    <div class="text-2xl font-black text-red-500" id="kpi-expense">₩ 0</div>
+                </div>
+                <div class="bg-white p-5 rounded-2xl shadow-sm border border-gray-100">
+                    <div class="text-xs text-gray-500 font-bold">순 저축</div>
+                    <div class="text-2xl font-black text-emerald-600" id="kpi-savings">₩ 0</div>
+                </div>
             </div>
 
+            <!-- Chart + Table -->
             <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
-                <!-- Left Chat Agent Area (7 Cols) -->
-                <div
-                    class="lg:col-span-7 bg-white p-5 rounded-2xl shadow-sm border border-gray-100 flex flex-col h-[640px]">
-                    <div class="flex items-center justify-between border-b border-gray-100 pb-3 mb-4">
-                        <span class="font-bold text-gray-800 text-sm flex items-center gap-2">
-                            <span>💬 AI 대화 및 자동 액션 에이전트</span>
-                        </span>
-                        <!-- Presets buttons -->
-                        <div class="flex gap-1 flex-wrap">
-                            <button onclick="sendPresetPrompt('내일 여행 준비물 챙겼는지 확인해줘')"
-                                class="bg-gray-100 hover:bg-gray-200 text-gray-700 text-[11px] px-2 py-1 rounded-lg">
-                                🎒 준비물 점검
-                            </button>
-                            <button onclick="sendPresetPrompt('이번달 지출 얼마야?')"
-                                class="bg-gray-100 hover:bg-gray-200 text-gray-700 text-[11px] px-2 py-1 rounded-lg">
-                                💰 이달의 지출
-                            </button>
-                            <button onclick="sendPresetPrompt('바다 생일 캘린더에 추가해줘')"
-                                class="bg-gray-100 hover:bg-gray-200 text-gray-700 text-[11px] px-2 py-1 rounded-lg">
-                                📅 일정 자동등록
-                            </button>
-                            <button onclick="sendPresetPrompt('하늘이 수영 학원비 언제 냈어?')"
-                                class="bg-gray-100 hover:bg-gray-200 text-gray-700 text-[11px] px-2 py-1 rounded-lg">
-                                🏊 학원비 조회
-                            </button>
-                        </div>
-                    </div>
-
-                    <!-- Chat Messages List -->
-                    <div id="chat-messages-container"
-                        class="flex-grow overflow-y-auto space-y-3 custom-scrollbar pr-2 text-xs">
-                        <!-- Default bot welcome -->
-                        <div class="flex gap-3">
-                            <div
-                                class="w-8 h-8 rounded-full bg-amber-500 text-white flex items-center justify-center font-bold text-xs flex-shrink-0">
-                                AI
-                            </div>
-                            <div
-                                class="bg-amber-50 text-gray-800 p-3 rounded-2xl rounded-tl-none max-w-[85%] border border-amber-100 leading-relaxed">
-                                안녕하세요! 가족 LLM 비서입니다. 대시보드의 일정, 할 일, WIKI 문서 및 <b>가계 수입/지출 데이터</b>에 대해 무엇이든 물어보세요.<br />
-                                <span class="text-amber-800 font-semibold block mt-1">추천 질문:</span>
-                                • <i>"이번 달 식비로 얼마 썼어?"</i><br />
-                                • <i>"속초 여행 준비물 중에 아직 안 챙긴 거 알려줘"</i><br />
-                                • <i>"바다 소아과 백신 접종 매뉴얼 찾아줘"</i>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Chat Input Bar -->
-                    <form onsubmit="handleChatSubmit(event)" class="mt-4 flex gap-2 border-t border-gray-100 pt-3">
-                        <input type="text" id="chat-input" placeholder="가족 LLM에게 질문하거나 일정을 명령하세요..."
-                            class="flex-grow bg-gray-50 border border-gray-200 rounded-xl px-4 py-2 text-xs focus:outline-none focus:border-amber-500">
-                        <button type="submit"
-                            class="bg-amber-500 hover:bg-amber-600 text-white font-bold px-4 py-2 rounded-xl text-xs transition-colors">
-                            전송
-                        </button>
-                    </form>
+                <div class="lg:col-span-5 bg-white p-5 rounded-2xl shadow-sm border border-gray-100">
+                    <h3 class="text-sm font-bold text-gray-800 mb-3">카테고리별 지출</h3>
+                    <div class="h-64"><canvas id="financeChart"></canvas></div>
                 </div>
-
-                <!-- Right WIKI Knowledge Base Explorer (5 Cols) -->
-                <div
-                    class="lg:col-span-5 bg-white p-5 rounded-2xl shadow-sm border border-gray-100 flex flex-col h-[640px]">
-                    <div class="flex items-center justify-between border-b border-gray-100 pb-3 mb-4">
-                        <h3 class="font-bold text-gray-800 text-sm">📚 가족 WIKI 데이터베이스 문서</h3>
-                        <button onclick="openNewDocModal()"
-                            class="bg-emerald-600 hover:bg-emerald-700 text-white text-xs px-2.5 py-1 rounded-lg font-bold">
-                            + 문서 작성
-                        </button>
+                <div class="lg:col-span-7 bg-white p-5 rounded-2xl shadow-sm border border-gray-100 flex flex-col">
+                    <div class="flex items-center justify-between mb-4">
+                        <h3 class="text-sm font-bold text-gray-800">거래 내역</h3>
+                        <button onclick="openFinanceModal()" class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded-lg font-bold text-xs shadow-xs">+ 거래 추가</button>
                     </div>
-
-                    <!-- Documents List -->
-                    <div class="flex-grow overflow-y-auto space-y-3 custom-scrollbar pr-1 text-xs"
-                        id="wiki-docs-container">
-                        <!-- JS injected docs -->
-                    </div>
-
-                    <div class="mt-3 bg-gray-50 p-3 rounded-xl border border-gray-200 text-[11px] text-gray-500">
-                        💡 <b>RAG 벡터 임베딩</b>: 새로운 문서를 작성하면 `pgvector` 코사인 유사도 인덱싱이 실시간 구동되어 AI 비서가 즉시 학습합니다.
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left text-xs">
+                            <thead class="bg-gray-50">
+                                <tr>
+                                    <th class="p-2">날짜</th>
+                                    <th class="p-2">구분</th>
+                                    <th class="p-2">항목</th>
+                                    <th class="p-2">카테고리</th>
+                                    <th class="p-2 text-right">금액</th>
+                                    <th class="p-2 text-center">관리</th>
+                                </tr>
+                            </thead>
+                            <tbody id="finance-table" class="divide-y divide-gray-100"></tbody>
+                        </table>
                     </div>
                 </div>
             </div>
         </section>
-
-
-        <!-- ================= TAB 4: SYSTEM ARCHITECTURE & API DOCS ================= -->
-        <section id="view-docs-api" class="hidden space-y-6">
-
-            <!-- Header Banner -->
-            <div class="bg-gray-800 text-white p-6 rounded-2xl shadow-md">
-                <div class="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-                    <div>
-                        <h2 class="text-xl font-bold">🛠️ 가족 LLM WIKI & 가계/영수증 통합 명세서</h2>
-                        <p class="text-xs text-gray-300 mt-1">시스템 아키텍처, 데이터베이스 스키마(PostgreSQL + pgvector + Finance),
-                            REST API 사양 및 관리자 운영가이드</p>
-                    </div>
-                    <div class="flex gap-2 text-xs flex-wrap">
-                        <span
-                            class="bg-gray-700 text-emerald-400 px-3 py-1.5 rounded-lg font-mono">v1.3.0-Production</span>
-                        <span class="bg-blue-600 text-white px-3 py-1.5 rounded-lg font-semibold">PostgreSQL 16 & OCR
-                            Engine</span>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Architecture Diagram Block (HTML/CSS Based - NO SVG / Mermaid) -->
-            <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
-                <h3 class="text-sm font-bold text-gray-800 mb-4 flex items-center gap-2">
-                    <span>🏗️ 시스템 하이브리드 아키텍처</span>
-                </h3>
-
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-center text-xs">
-                    <!-- Client Tier -->
-                    <div class="bg-amber-50 p-4 rounded-xl border border-amber-200 flex flex-col justify-between">
-                        <span class="font-bold text-amber-900 text-sm">1. Client Layer</span>
-                        <div
-                            class="my-3 space-y-1 bg-white p-3 rounded-lg shadow-2xs font-mono text-gray-700 text-[11px]">
-                            <p class="font-bold text-amber-800">Next.js 14 Dashboard PWA</p>
-                            <p>거실 월패드 (Kiosk Mode)</p>
-                            <p>영수증 카메라 OCR 업로드</p>
-                        </div>
-                        <span class="text-[10px] text-amber-700 font-semibold">WebSockets Realtime Sync</span>
-                    </div>
-
-                    <!-- Core & LLM Gateway -->
-                    <div class="bg-blue-50 p-4 rounded-xl border border-blue-200 flex flex-col justify-between">
-                        <span class="font-bold text-blue-900 text-sm">2. Core & RAG Service Layer</span>
-                        <div
-                            class="my-3 space-y-1 bg-white p-3 rounded-lg shadow-2xs font-mono text-gray-700 text-[11px]">
-                            <p class="font-bold text-blue-800">FastAPI & LangChain Agent</p>
-                            <p>PaddleOCR / EasyOCR Engine</p>
-                            <p class="text-[10px] text-purple-600 font-bold">Function Calling Agent</p>
-                        </div>
-                        <span class="text-[10px] text-blue-700 font-semibold">Redis Pub/Sub Message Broker</span>
-                    </div>
-
-                    <!-- Database Tier -->
-                    <div class="bg-emerald-50 p-4 rounded-xl border border-emerald-200 flex flex-col justify-between">
-                        <span class="font-bold text-emerald-900 text-sm">3. Data & Storage Layer</span>
-                        <div
-                            class="my-3 space-y-1 bg-white p-3 rounded-lg shadow-2xs font-mono text-gray-700 text-[11px]">
-                            <p class="font-bold text-emerald-800">PostgreSQL 16 Engine</p>
-                            <p>pgvector (HNSW Index 1536d)</p>
-                            <p>Finance / Receipt / Todo Schema</p>
-                        </div>
-                        <span class="text-[10px] text-emerald-700 font-semibold">ACID + Hybrid Vector Search</span>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Database ERD Table Viewer -->
-            <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
-                <h3 class="text-sm font-bold text-gray-800 mb-4">🗄️ 확장 데이터베이스 스키마 명세 (PostgreSQL Schema)</h3>
-
-                <div class="overflow-x-auto">
-                    <table class="w-full text-left text-xs border-collapse">
-                        <thead>
-                            <tr class="bg-gray-100 text-gray-700 font-bold border-b border-gray-200">
-                                <th class="p-2.5">테이블 명</th>
-                                <th class="p-2.5">주요 컬럼 (Primary Key & Data Types)</th>
-                                <th class="p-2.5">설명 및 비고</th>
-                            </tr>
-                        </thead>
-                        <tbody class="divide-y divide-gray-100 text-gray-600 font-mono">
-                            <tr class="hover:bg-gray-50">
-                                <td class="p-2.5 font-bold text-blue-600">users</td>
-                                <td class="p-2.5">user_id (UUID PK), name, role, color_code, birth_date</td>
-                                <td class="p-2.5">가족 구성원 정보 및 태그 색상</td>
-                            </tr>
-                            <tr class="hover:bg-gray-50 bg-amber-50/50">
-                                <td class="p-2.5 font-bold text-amber-700">finance_transactions</td>
-                                <td class="p-2.5">trans_id (UUID PK), type(INCOME/EXPENSE), amount, category, date,
-                                    method, user_id(FK)</td>
-                                <td class="p-2.5 font-bold text-amber-800">가계 수입 및 지출 통합 원장 테이블</td>
-                            </tr>
-                            <tr class="hover:bg-gray-50 bg-amber-50/50">
-                                <td class="p-2.5 font-bold text-amber-700">receipts</td>
-                                <td class="p-2.5">receipt_id (UUID PK), store_name, total_amount, date, image_url,
-                                    trans_id(FK)</td>
-                                <td class="p-2.5 font-bold text-amber-800">OCR로 스캔된 영수증 정보 및 원본 이미지 링크</td>
-                            </tr>
-                            <tr class="hover:bg-gray-50">
-                                <td class="p-2.5 font-bold text-blue-600">calendar_events</td>
-                                <td class="p-2.5">event_id (UUID PK), title, start_time, end_time, category, user_id(FK)
-                                </td>
-                                <td class="p-2.5">월간/일간 일정 데이터 관리</td>
-                            </tr>
-                            <tr class="hover:bg-gray-50">
-                                <td class="p-2.5 font-bold text-purple-600">wiki_documents</td>
-                                <td class="p-2.5">doc_id (UUID PK), title, category, raw_markdown (TEXT), author_id(FK)
-                                </td>
-                                <td class="p-2.5">LLM 지식 베이스 원본 Markdown 문서</td>
-                            </tr>
-                            <tr class="hover:bg-gray-50 bg-emerald-50/50">
-                                <td class="p-2.5 font-bold text-emerald-700">wiki_document_chunks</td>
-                                <td class="p-2.5">chunk_id (UUID PK), doc_id (FK), chunk_text, embedding (vector(1536))
-                                </td>
-                                <td class="p-2.5 font-bold text-emerald-800">pgvector HNSW 벡터 코사인 유사도 인덱스 구역</td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-
-            <!-- REST API Specifications & Interactive JSON Sandbox -->
-            <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
-                <div class="flex items-center justify-between mb-4 flex-wrap gap-2">
-                    <div>
-                        <h3 class="text-sm font-bold text-gray-800">⚡ REST API 정의서 (Interactive Sandbox)</h3>
-                        <p class="text-xs text-gray-500">API 엔드포인트를 직접 테스트해보고 반환되는 JSON 응답을 확인하세요.</p>
-                    </div>
-                    <div class="flex gap-2 flex-wrap">
-                        <button onclick="filterApiCategory('all')"
-                            class="bg-gray-200 text-gray-800 text-xs px-2.5 py-1 rounded font-semibold">전체 API</button>
-                        <button onclick="filterApiCategory('finance')"
-                            class="bg-amber-100 text-amber-800 text-xs px-2.5 py-1 rounded font-semibold">가계/영수증
-                            API</button>
-                        <button onclick="filterApiCategory('llm')"
-                            class="bg-blue-100 text-blue-800 text-xs px-2.5 py-1 rounded font-semibold">LLM/RAG
-                            API</button>
-                        <button onclick="filterApiCategory('admin')"
-                            class="bg-red-100 text-red-800 text-xs px-2.5 py-1 rounded font-semibold">운영/관리자
-                            API</button>
-                    </div>
-                </div>
-
-                <div class="space-y-4" id="api-list-container">
-                    <!-- API 1: Receipts OCR -->
-                    <div class="api-item category-finance border border-gray-200 rounded-xl p-4">
-                        <div class="flex items-center justify-between font-mono text-xs flex-wrap gap-2">
-                            <div class="flex items-center gap-2">
-                                <span class="bg-blue-600 text-white font-bold px-2 py-0.5 rounded">POST</span>
-                                <span class="font-bold text-gray-800">/api/v1/receipts/scan</span>
-                            </div>
-                            <div class="flex items-center gap-2">
-                                <span class="text-purple-700 font-bold">영수증 이미지 OCR 분석 및 파싱</span>
-                                <button onclick="testApiSandbox('receipts_scan')"
-                                    class="bg-purple-100 hover:bg-purple-200 text-purple-800 px-2 py-0.5 rounded text-[11px] font-semibold">
-                                    ▶ Try It Out
-                                </button>
-                            </div>
-                        </div>
-                        <div class="mt-3 bg-gray-900 text-purple-300 p-3 rounded-lg text-xs font-mono overflow-x-auto"
-                            id="sandbox-res-receipts_scan">
-                            <pre>// Response Payload (200 OK)
-{
-  "success": true,
-  "data": {
-    "receipt_id": "rcpt_temp_91823",
-    "store_name": "하나로마트 속초농협점",
-    "scanned_at": "2026-11-04 15:42",
-    "total_amount": 36100,
-    "items": [
-      { "name": "강원도 한우 국거리", "price": 24000 },
-      { "name": "신선 사과 1봉", "price": 8900 },
-      { "name": "생수 2L 6팩", "price": 3200 }
-    ],
-    "ocr_confidence": 0.985
-  }
-}</pre>
-                        </div>
-                    </div>
-
-                    <!-- API 2: Finance Summary -->
-                    <div class="api-item category-finance border border-gray-200 rounded-xl p-4">
-                        <div class="flex items-center justify-between font-mono text-xs flex-wrap gap-2">
-                            <div class="flex items-center gap-2">
-                                <span class="bg-emerald-600 text-white font-bold px-2 py-0.5 rounded">GET</span>
-                                <span class="font-bold text-gray-800">/api/v1/finance/summary</span>
-                            </div>
-                            <div class="flex items-center gap-2">
-                                <span class="text-gray-500">월별 수입/지출 및 카테고리 통계 조회</span>
-                                <button onclick="testApiSandbox('finance_summary')"
-                                    class="bg-emerald-100 hover:bg-emerald-200 text-emerald-800 px-2 py-0.5 rounded text-[11px] font-semibold">
-                                    ▶ Try It Out
-                                </button>
-                            </div>
-                        </div>
-                        <div class="mt-3 bg-gray-900 text-emerald-400 p-3 rounded-lg text-xs font-mono overflow-x-auto"
-                            id="sandbox-res-finance_summary">
-                            <pre>{
-  "month": "2026-11",
-  "total_income": 5800000,
-  "total_expense": 2435000,
-  "net_savings": 3365000,
-  "budget_limit": 3000000,
-  "category_breakdown": {
-    "식비": 780000,
-    "육아/교육": 650000,
-    "주거/통신": 480000,
-    "쇼핑/생활": 320000,
-    "기타": 205000
-  }
-}</pre>
-                        </div>
-                    </div>
-
-                    <!-- API 3: LLM Chat -->
-                    <div class="api-item category-llm border border-gray-200 rounded-xl p-4">
-                        <div class="flex items-center justify-between font-mono text-xs flex-wrap gap-2">
-                            <div class="flex items-center gap-2">
-                                <span class="bg-blue-600 text-white font-bold px-2 py-0.5 rounded">POST</span>
-                                <span class="font-bold text-gray-800">/api/v1/llm/chat</span>
-                            </div>
-                            <div class="flex items-center gap-2">
-                                <span class="text-amber-700 font-bold">RAG 자연어 질의 & Agent 명령 실행</span>
-                                <button onclick="testApiSandbox('llm_chat')"
-                                    class="bg-amber-100 hover:bg-amber-200 text-amber-800 px-2 py-0.5 rounded text-[11px] font-semibold">
-                                    ▶ Try It Out
-                                </button>
-                            </div>
-                        </div>
-                        <div class="mt-3 bg-gray-900 text-amber-300 p-3 rounded-lg text-xs font-mono overflow-x-auto"
-                            id="sandbox-res-llm_chat">
-                            <pre>// Request: { "prompt": "이번달 지출 얼마야?", "enable_agent_action": true }
-// Response:
-{
-  "answer": "💰 2026년 11월 총 지출은 2,435,000원입니다. (예산 대비 81.1% 소진)",
-  "retrieved_context_count": 2,
-  "latency_ms": 340
-}</pre>
-                        </div>
-                    </div>
-
-                    <!-- API 4: Health Check (Admin) -->
-                    <div class="api-item category-admin border border-gray-200 rounded-xl p-4">
-                        <div class="flex items-center justify-between font-mono text-xs flex-wrap gap-2">
-                            <div class="flex items-center gap-2">
-                                <span class="bg-gray-600 text-white font-bold px-2 py-0.5 rounded">GET</span>
-                                <span class="font-bold text-gray-800">/api/v1/health</span>
-                            </div>
-                            <div class="flex items-center gap-2">
-                                <span class="text-blue-700 font-bold">시스템 헬스체크 및 pgvector 상태</span>
-                                <button onclick="testApiSandbox('health')"
-                                    class="bg-blue-100 hover:bg-blue-200 text-blue-800 px-2 py-0.5 rounded text-[11px] font-semibold">
-                                    ▶ Try It Out
-                                </button>
-                            </div>
-                        </div>
-                        <div class="mt-3 bg-gray-900 text-blue-300 p-3 rounded-lg text-xs font-mono overflow-x-auto"
-                            id="sandbox-res-health">
-                            <pre>{
-  "status": "UP",
-  "database": "PostgreSQL 16 (Connected)",
-  "vector_extension": "pgvector 0.7.0 (Active)",
-  "ollama_agent": "Llama3-8B (Online)",
-  "system_uptime": "99.98%"
-}</pre>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Child Growth Analytics Chart Container -->
-            <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
-                <h3 class="text-sm font-bold text-gray-800 mb-2">📊 아이 성장 데이터 예측 그래프 (Chart.js Canvas)</h3>
-                <p class="text-xs text-gray-500 mb-4">하늘(6세)과 바다(3세)의 질병 백신 접종 및 발달 수치 예측 추이</p>
-                <div class="chart-container">
-                    <canvas id="growthChart"></canvas>
-                </div>
-            </div>
-        </section>
-
     </main>
 
-    <!-- Mobile Bottom App Bar (Native App Bottom Tabs for Smartphone Users) -->
-    <nav class="md:hidden fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-md border-t border-gray-200 z-50 px-2 py-1 shadow-lg pb-[env(safe-area-inset-bottom)]">
-        <div class="grid grid-cols-4 text-center text-[10px] font-medium">
-            <button onclick="switchTab('dashboard')" id="mobile-tab-dashboard" class="mobile-tab-btn flex flex-col items-center py-1 text-gray-900 font-bold">
-                <span class="text-base">📌</span>
-                <span>대시보드</span>
-            </button>
-            <button onclick="switchTab('finance')" id="mobile-tab-finance" class="mobile-tab-btn flex flex-col items-center py-1 text-gray-400">
-                <span class="text-base">💰</span>
-                <span>가계/영수증</span>
-            </button>
-            <button onclick="switchTab('llm-wiki')" id="mobile-tab-llm-wiki" class="mobile-tab-btn flex flex-col items-center py-1 text-gray-400">
-                <span class="text-base">🤖</span>
-                <span>AI 비서</span>
-            </button>
-            <button onclick="switchTab('docs-api')" id="mobile-tab-docs-api" class="mobile-tab-btn flex flex-col items-center py-1 text-gray-400">
-                <span class="text-base">📖</span>
-                <span>시스템명세</span>
-            </button>
-        </div>
-    </nav>
-
-    <!-- Bottom Stock Ticker & Media Player Footer Dock (Hidden or shifted on mobile) -->
-    <footer class="bg-gray-900 text-white border-t border-gray-800 py-2.5 px-4 sticky bottom-0 md:sticky z-40 mb-12 md:mb-0">
-        <div class="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-2 text-xs">
-            <!-- Stock Ticker Text Rolling -->
-            <div class="ticker-wrap flex-grow max-w-2xl font-mono">
-                <div class="ticker-move text-gray-300">
-                    <span class="mr-6"><span class="font-bold text-gray-400">미국 필라델피아 반도체 SOX</span> <span
-                            class="text-white">5,140</span> <span class="text-red-400 font-bold">▲0.57%</span></span>
-                    <span class="mr-6"><span class="font-bold text-gray-400">TSMC</span> <span
-                            class="text-white">$184</span> <span class="text-red-400 font-bold">▲0.64%</span></span>
-                    <span class="mr-6"><span class="font-bold text-gray-400">마이크론</span> <span
-                            class="text-white">$112</span> <span class="text-blue-400 font-bold">▼0.19%</span></span>
-                    <span class="mr-6"><span class="font-bold text-gray-400">삼성전자</span> <span
-                            class="text-white">58,400</span> <span class="text-red-400 font-bold">▲1.20%</span></span>
-                    <span class="mr-6"><span class="font-bold text-gray-400">원/달러 환율</span> <span
-                            class="text-white">1,382.50</span> <span class="text-blue-400 font-bold">▼2.10</span></span>
-                    <span class="mr-6"><span class="font-bold text-gray-400">가족 저축 목표</span> <span
-                            class="text-emerald-400 font-bold">84% 달성중</span></span>
-                </div>
+    <!-- Modals -->
+    
+    <!-- User Modal -->
+    <div id="user-modal" class="fixed inset-0 bg-black/50 hidden items-center justify-center z-50 p-4">
+        <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl">
+            <h3 class="text-base font-bold text-gray-800 mb-4">👤 사용자 등록</h3>
+            <div class="space-y-3">
+                <div><label class="block text-xs font-bold text-gray-700 mb-1">사용자 ID</label><input type="text" id="u-id" class="w-full bg-gray-50 border border-gray-200 rounded-lg p-2 font-mono" placeholder="예: usr_jihoon_01"></div>
+                <div><label class="block text-xs font-bold text-gray-700 mb-1">이름</label><input type="text" id="u-name" class="w-full bg-gray-50 border border-gray-200 rounded-lg p-2" placeholder="예: 지훈"></div>
+                <div><label class="block text-xs font-bold text-gray-700 mb-1">역할</label><select id="u-role" class="w-full bg-gray-50 border border-gray-200 rounded-lg p-2"><option value="ADMIN">관리자</option><option value="MEMBER">가족구성원</option><option value="CHILD">자녀</option></select></div>
+                <div><label class="block text-xs font-bold text-gray-700 mb-1">아바타 이니셜</label><input type="text" id="u-avatar" class="w-full bg-gray-50 border border-gray-200 rounded-lg p-2 text-center font-mono" maxlength="2" placeholder="지"></div>
+                <div><label class="block text-xs font-bold text-gray-700 mb-1">색상</label><select id="u-color" class="w-full bg-gray-50 border border-gray-200 rounded-lg p-2"><option value="#4299E1">파란색</option><option value="#48BB78">초록색</option><option value="#F687B3">분홍색</option><option value="#ECC94B">노란색</option></select></div>
             </div>
-
-            <!-- Media Music Player Capsule -->
-            <div class="flex items-center gap-3 bg-gray-800 px-3 py-1 rounded-full border border-gray-700">
-                <button onclick="toggleMusic()" id="music-play-btn"
-                    class="bg-blue-600 hover:bg-blue-500 text-white rounded-full w-6 h-6 flex items-center justify-center font-bold text-[10px]">
-                    ▶
-                </button>
-                <span class="text-blue-300 font-semibold text-[11px] flex items-center gap-1">
-                    <span>🎵 반짝반짝 작은 별</span>
-                </span>
-                <span class="text-[10px] text-gray-400 font-mono" id="dock-time-label">2:30 PM 갱신</span>
-            </div>
-        </div>
-    </footer>
-
-    <!-- New Document Modal -->
-    <div id="new-doc-modal"
-        class="fixed inset-0 bg-black/50 backdrop-blur-xs hidden items-center justify-center z-50 p-4">
-        <div class="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl space-y-4">
-            <h3 class="text-base font-bold text-gray-800">📝 새 WIKI 지식 문서 작성</h3>
-            <div class="space-y-3 text-xs">
-                <div>
-                    <label class="block font-bold text-gray-700 mb-1">문서 제목</label>
-                    <input type="text" id="doc-title-input" placeholder="예: 바다 소아과 백신 접종 매뉴얼"
-                        class="w-full bg-gray-50 border border-gray-200 rounded-lg p-2 focus:outline-none focus:border-amber-500">
-                </div>
-                <div>
-                    <label class="block font-bold text-gray-700 mb-1">카테고리</label>
-                    <select id="doc-cat-input" class="w-full bg-gray-50 border border-gray-200 rounded-lg p-2">
-                        <option value="육아/건강">육아/건강</option>
-                        <option value="가계/재정">가계/재정</option>
-                        <option value="가전/집안일">가전/집안일</option>
-                        <option value="여행/레저">여행/레저</option>
-                        <option value="가족 규칙">가족 규칙</option>
-                    </select>
-                </div>
-                <div>
-                    <label class="block font-bold text-gray-700 mb-1">Markdown 내용</label>
-                    <textarea id="doc-content-input" rows="5" placeholder="LLM이 RAG 검색에 활용할 지식 내용을 작성하세요..."
-                        class="w-full bg-gray-50 border border-gray-200 rounded-lg p-2 focus:outline-none focus:border-amber-500 font-mono"></textarea>
-                </div>
-            </div>
-            <div class="flex justify-end gap-2 pt-2">
-                <button onclick="closeNewDocModal()"
-                    class="px-4 py-1.5 bg-gray-200 text-gray-700 rounded-lg text-xs font-semibold">취소</button>
-                <button onclick="saveNewDoc()"
-                    class="px-4 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold">저장 및
-                    벡터색인</button>
+            <div class="flex justify-end gap-2 pt-4">
+                <button onclick="closeModal('user-modal')" class="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg font-bold text-xs">취소</button>
+                <button onclick="saveUser()" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-bold text-xs">등록하기</button>
             </div>
         </div>
     </div>
 
-    <!-- New User Modal (가족 구성원 등록) -->
-    <div id="new-user-modal"
-        class="fixed inset-0 bg-black/50 backdrop-blur-xs hidden items-center justify-center z-50 p-4">
-        <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4">
-            <h3 class="text-base font-bold text-gray-800">👤 가족 구성원 등록</h3>
-            <div class="space-y-3 text-xs">
-                <div>
-                    <label class="block font-bold text-gray-700 mb-1">사용자 ID (예: usr_jihoon_01)</label>
-                    <input type="text" id="user-id-input" placeholder="예: usr_jihoon_01"
-                        class="w-full bg-gray-50 border border-gray-200 rounded-lg p-2 font-mono">
+    <!-- Schedule Modal -->
+    <div id="schedule-modal" class="fixed inset-0 bg-black/50 hidden items-center justify-center z-50 p-4">
+        <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl">
+            <h3 class="text-base font-bold text-gray-800 mb-4">📅 일정 등록</h3>
+            <div class="space-y-3">
+                <div><label class="block text-xs font-bold text-gray-700 mb-1">제목</label><input type="text" id="s-title" class="w-full bg-gray-50 border border-gray-200 rounded-lg p-2"></div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div><label class="block text-xs font-bold text-gray-700 mb-1">시작</label><input type="datetime-local" id="s-start" class="w-full bg-gray-50 border border-gray-200 rounded-lg p-2"></div>
+                    <div><label class="block text-xs font-bold text-gray-700 mb-1">종료</label><input type="datetime-local" id="s-end" class="w-full bg-gray-50 border border-gray-200 rounded-lg p-2"></div>
                 </div>
-                <div>
-                    <label class="block font-bold text-gray-700 mb-1">이름</label>
-                    <input type="text" id="user-name-input" placeholder="예: 지훈"
-                        class="w-full bg-gray-50 border border-gray-200 rounded-lg p-2">
-                </div>
-                <div>
-                    <label class="block font-bold text-gray-700 mb-1">역할</label>
-                    <select id="user-role-input" class="w-full bg-gray-50 border border-gray-200 rounded-lg p-2">
-                        <option value="ADMIN">관리자</option>
-                        <option value="MEMBER">가족구성원</option>
-                        <option value="CHILD">자녀</option>
-                    </select>
-                </div>
-                <div>
-                    <label class="block font-bold text-gray-700 mb-1">아바타 이니셜</label>
-                    <input type="text" id="user-avatar-input" placeholder="지" maxlength="2"
-                        class="w-full bg-gray-50 border border-gray-200 rounded-lg p-2 font-mono text-center">
-                </div>
-                <div>
-                    <label class="block font-bold text-gray-700 mb-1">생일</label>
-                    <input type="date" id="user-birth-input"
-                        class="w-full bg-gray-50 border border-gray-200 rounded-lg p-2">
-                </div>
-                <div>
-                    <label class="block font-bold text-gray-700 mb-1">태그 색상</label>
-                    <select id="user-color-input" class="w-full bg-gray-50 border border-gray-200 rounded-lg p-2">
-                        <option value="#4299E1">파란색 (지훈)</option>
-                        <option value="#48BB78">초록색 (민서)</option>
-                        <option value="#F687B3">분홍색 (하늘)</option>
-                        <option value="#ECC94B">노란색 (바다)</option>
-                        <option value="#805AD5">보라색</option>
-                    </select>
-                </div>
+                <div><label class="block text-xs font-bold text-gray-700 mb-1">카테고리</label><select id="s-cat" class="w-full bg-gray-50 border border-gray-200 rounded-lg p-2"><option value="개인">개인</option><option value="가족">가족</option><option value="육아">육아</option><option value="건강">건강</option></select></div>
+                <div><label class="block text-xs font-bold text-gray-700 mb-1">색상</label><select id="s-color" class="w-full bg-gray-50 border border-gray-200 rounded-lg p-2"><option value="#63B3ED">파랑</option><option value="#68D391">초록</option><option value="#F6AD55">노랑</option><option value="#D6BCFA">보라</option></select></div>
+                <div><label class="block text-xs font-bold text-gray-700 mb-1">설명</label><input type="text" id="s-desc" class="w-full bg-gray-50 border border-gray-200 rounded-lg p-2"></div>
             </div>
-            <div class="flex justify-end gap-2 pt-2">
-                <button onclick="closeNewUserModal()"
-                    class="px-4 py-1.5 bg-gray-200 text-gray-700 rounded-lg text-xs font-semibold">취소</button>
-                <button onclick="saveNewUser()"
-                    class="px-4 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-bold">등록하기</button>
+            <div class="flex justify-end gap-2 pt-4">
+                <button onclick="closeModal('schedule-modal')" class="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg font-bold text-xs">취소</button>
+                <button onclick="saveSchedule()" class="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-bold text-xs">등록하기</button>
             </div>
         </div>
     </div>
 
-    <!-- New Calendar Event Modal (내 일정 등록) -->
-    <div id="new-calendar-modal"
-        class="fixed inset-0 bg-black/50 backdrop-blur-xs hidden items-center justify-center z-50 p-4">
-        <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4">
-            <h3 class="text-base font-bold text-gray-800">📅 내 일정 등록</h3>
-            <div class="space-y-3 text-xs">
-                <div>
-                    <label class="block font-bold text-gray-700 mb-1">일정 제목</label>
-                    <input type="text" id="cal-title-input" placeholder="예: 지훈 개인 운동"
-                        class="w-full bg-gray-50 border border-gray-200 rounded-lg p-2">
-                </div>
-                <div>
-                    <label class="block font-bold text-gray-700 mb-1">시작 일시</label>
-                    <input type="datetime-local" id="cal-start-input"
-                        class="w-full bg-gray-50 border border-gray-200 rounded-lg p-2">
-                </div>
-                <div>
-                    <label class="block font-bold text-gray-700 mb-1">종료 일시</label>
-                    <input type="datetime-local" id="cal-end-input"
-                        class="w-full bg-gray-50 border border-gray-200 rounded-lg p-2">
-                </div>
-                <div>
-                    <label class="block font-bold text-gray-700 mb-1">카테고리</label>
-                    <select id="cal-cat-input" class="w-full bg-gray-50 border border-gray-200 rounded-lg p-2">
-                        <option value="개인">개인</option>
-                        <option value="가족">가족</option>
-                        <option value="육아">육아</option>
-                        <option value="건강">건강</option>
-                        <option value="기타">기타</option>
-                    </select>
-                </div>
-                <div>
-                    <label class="block font-bold text-gray-700 mb-1">태그 색상</label>
-                    <select id="cal-color-input" class="w-full bg-gray-50 border border-gray-200 rounded-lg p-2">
-                        <option value="#4299E1">파란색</option>
-                        <option value="#48BB78">초록색</option>
-                        <option value="#F687B3">분홍색</option>
-                        <option value="#ECC94B">노란색</option>
-                        <option value="#805AD5">보라색</option>
-                    </select>
-                </div>
-                <div>
-                    <label class="block font-bold text-gray-700 mb-1">설명</label>
-                    <input type="text" id="cal-desc-input" placeholder="일정 설명을 입력하세요"
-                        class="w-full bg-gray-50 border border-gray-200 rounded-lg p-2">
-                </div>
+    <!-- Todo Modal -->
+    <div id="todo-modal" class="fixed inset-0 bg-black/50 hidden items-center justify-center z-50 p-4">
+        <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl">
+            <h3 class="text-base font-bold text-gray-800 mb-4">✅ 할일 등록</h3>
+            <div class="space-y-3">
+                <div><label class="block text-xs font-bold text-gray-700 mb-1">할일 내용</label><input type="text" id="t-title" class="w-full bg-gray-50 border border-gray-200 rounded-lg p-2" placeholder="예: 장보기"></div>
             </div>
-            <div class="flex justify-end gap-2 pt-2">
-                <button onclick="closeNewCalendarModal()"
-                    class="px-4 py-1.5 bg-gray-200 text-gray-700 rounded-lg text-xs font-semibold">취소</button>
-                <button onclick="saveNewCalendarEvent()"
-                    class="px-4 py-1.5 bg-purple-600 hover:bg-purple-700 text-white rounded-lg text-xs font-bold">등록하기</button>
+            <div class="flex justify-end gap-2 pt-4">
+                <button onclick="closeModal('todo-modal')" class="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg font-bold text-xs">취소</button>
+                <button onclick="saveTodo()" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-bold text-xs">등록하기</button>
             </div>
         </div>
     </div>
 
-    <!-- New Transaction Modal -->
-    <div id="new-trans-modal"
-        class="fixed inset-0 bg-black/50 backdrop-blur-xs hidden items-center justify-center z-50 p-4">
-        <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4">
-            <h3 class="text-base font-bold text-gray-800">💰 수동 수입/지출 내역 등록</h3>
-            <div class="space-y-3 text-xs">
-                <div>
-                    <label class="block font-bold text-gray-700 mb-1">구분</label>
-                    <select id="trans-type-input"
-                        class="w-full bg-gray-50 border border-gray-200 rounded-lg p-2 font-semibold">
-                        <option value="EXPENSE">지출 (-)</option>
-                        <option value="INCOME">수입 (+)</option>
-                    </select>
-                </div>
-                <div>
-                    <label class="block font-bold text-gray-700 mb-1">항목명 / 상호명</label>
-                    <input type="text" id="trans-title-input" placeholder="예: 동네 마트 장보기"
-                        class="w-full bg-gray-50 border border-gray-200 rounded-lg p-2">
-                </div>
-                <div>
-                    <label class="block font-bold text-gray-700 mb-1">금액 (원)</label>
-                    <input type="number" id="trans-amount-input" placeholder="35000"
-                        class="w-full bg-gray-50 border border-gray-200 rounded-lg p-2 font-mono">
-                </div>
-                <div>
-                    <label class="block font-bold text-gray-700 mb-1">카테고리</label>
-                    <select id="trans-cat-input" class="w-full bg-gray-50 border border-gray-200 rounded-lg p-2">
-                        <option value="식비">식비</option>
-                        <option value="육아/교육">육아/교육</option>
-                        <option value="쇼핑/생활">쇼핑/생활</option>
-                        <option value="주거/통신">주거/통신</option>
-                        <option value="기타">기타</option>
-                        <option value="월급/수입">월급/수입</option>
-                    </select>
-                </div>
-                <div>
-                    <label class="block font-bold text-gray-700 mb-1">결제 수단</label>
-                    <select id="trans-method-input" class="w-full bg-gray-50 border border-gray-200 rounded-lg p-2">
-                        <option value="신한카드">신한카드</option>
-                        <option value="국민카드">국민카드</option>
-                        <option value="계좌이체">계좌이체</option>
-                        <option value="현금">현금</option>
-                        <option value="주거래통장">주거래통장</option>
-                    </select>
-                </div>
+    <!-- Finance Modal -->
+    <div id="finance-modal" class="fixed inset-0 bg-black/50 hidden items-center justify-center z-50 p-4">
+        <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl">
+            <h3 class="text-base font-bold text-gray-800 mb-4">💰 거래 등록</h3>
+            <div class="space-y-3">
+                <div><label class="block text-xs font-bold text-gray-700 mb-1">구분</label><select id="f-type" class="w-full bg-gray-50 border border-gray-200 rounded-lg p-2"><option value="EXPENSE">지출 (-)</option><option value="INCOME">수입 (+)</option></select></div>
+                <div><label class="block text-xs font-bold text-gray-700 mb-1">항목명</label><input type="text" id="f-title" class="w-full bg-gray-50 border border-gray-200 rounded-lg p-2" placeholder="예: 마트 장보기"></div>
+                <div><label class="block text-xs font-bold text-gray-700 mb-1">금액 (원)</label><input type="number" id="f-amount" class="w-full bg-gray-50 border border-gray-200 rounded-lg p-2 font-mono" placeholder="35000"></div>
+                <div><label class="block text-xs font-bold text-gray-700 mb-1">카테고리</label><select id="f-cat" class="w-full bg-gray-50 border border-gray-200 rounded-lg p-2"><option value="식비">식비</option><option value="육아/교육">육아/교육</option><option value="쇼핑/생활">쇼핑/생활</option><option value="주거/통신">주거/통신</option><option value="기타">기타</option><option value="월급/수입">월급/수입</option></select></div>
+                <div><label class="block text-xs font-bold text-gray-700 mb-1">결제 수단</label><select id="f-method" class="w-full bg-gray-50 border border-gray-200 rounded-lg p-2"><option value="현대카드">현대카드</option><option value="신한카드">신한카드</option><option value="계좌이체">계좌이체</option><option value="현금">현금</option></select></div>
             </div>
-            <div class="flex justify-end gap-2 pt-2">
-                <button onclick="closeNewTransModal()"
-                    class="px-4 py-1.5 bg-gray-200 text-gray-700 rounded-lg text-xs font-semibold">취소</button>
-                <button onclick="saveNewTransaction()"
-                    class="px-4 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-bold">등록하기</button>
+            <div class="flex justify-end gap-2 pt-4">
+                <button onclick="closeModal('finance-modal')" class="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg font-bold text-xs">취소</button>
+                <button onclick="saveFinance()" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-bold text-xs">등록하기</button>
             </div>
         </div>
     </div>
 
-    <!-- JavaScript Application Logic -->
     <script>
-        // Application Global State with LocalStorage Persistence (First-User Onboarding Baseline)
-        const defaultState = {
-            users: [],                      // 백엔드에서 동적 로드
-            selectedUserId: '',             // 현재 선택된 가족 구성원 ID
-            selectedUserName: '',           // 현재 선택된 사용자 이름
-            checklist: [
-                { id: 1, category: '시작 가이드', name: '스마트폰 홈 화면에 앱 설치하기', checked: true },
-                { id: 2, category: '시작 가이드', name: '첫 영수증 카메라 OCR 스캔해보기', checked: true },
-                { id: 3, category: '챙길 물품', name: '아이 비상약 챙기기', checked: true },
-                { id: 4, category: '챙길 물품', name: '잠옷 및 여벌 옷', checked: false },
-                { id: 5, category: '챙길 물품', name: '수영복 및 모자', checked: false },
-                { id: 6, category: '챙길 물품', name: '카메라 및 충전기', checked: false },
-                { id: 7, category: '챙길 물품', name: '아이 간식통 및 음료수', checked: false },
-                { id: 8, category: '챙길 물품', name: '세면도구 및 물티슈', checked: false },
-                { id: 9, category: '살 것', name: '아이스팩', checked: false },
-                { id: 10, category: '살 것', name: '생수 2L', checked: false },
-                { id: 11, category: '살 것', name: '컵라면', checked: false }
-            ],
-            jihoonTodos: [
-                { id: 101, title: '📱 가족 대시보드 스마트폰에 앱 설치하기', done: true },
-                { id: 102, title: '💰 11월 가족 지출 예산 검토하기', done: false },
-                { id: 103, title: '📅 주말 가족 나들이 일정 등록하기', done: false },
-                { id: 104, title: '♻️ 분리수거 및 환기하기', done: false }
-            ],
-            minseoTodos: [
-                { id: 201, title: '🧾 영수증 카메라 OCR 스캔 테스트해보기', done: true },
-                { id: 202, title: '👶 하늘 & 바다 예방접종 일정 확인하기', done: false },
-                { id: 203, title: '📖 가족 위키 환영 가이드 읽어보기', done: false },
-                { id: 204, title: '🪴 화분 물 주기 및 거실 정리', done: false }
-            ],
-            transactions: [],
-            calendarEvents: [],
-            wikiDocs: [],
-            currentTxFilter: 'ALL',
-            isPlayingMusic: false,
-            expenseChartInstance: null,
-            trendChartInstance: null,
-            growthChartInstance: null
-        };
-
-        // Load State from LocalStorage
-        function loadState() {
-            try {
-                const saved = localStorage.getItem('family_dashboard_state_v2');
-                if (saved) {
-                    const parsed = JSON.parse(saved);
-                    return { ...defaultState, ...parsed };
-                }
-            } catch (e) {
-                console.warn('Failed to load local state:', e);
-            }
-            return defaultState;
-        }
-
-        const state = loadState();
-
-        function saveState() {
-            try {
-                localStorage.setItem('family_dashboard_state_v2', JSON.stringify({
-                    users: state.users,
-                    selectedUserId: state.selectedUserId,
-                    selectedUserName: state.selectedUserName,
-                    checklist: state.checklist,
-                    jihoonTodos: state.jihoonTodos,
-                    minseoTodos: state.minseoTodos,
-                    transactions: state.transactions,
-                    calendarEvents: state.calendarEvents,
-                    wikiDocs: state.wikiDocs
-                }));
-            } catch (e) {
-                console.warn('Failed to save local state:', e);
-            }
-        }
-
         const API_BASE = window.location.port === '8088' ? '/api/v1' : 'http://localhost:8088/api/v1';
-        let isBackendOnline = false;
+        let isOnline = false;
+        let selectedUserId = '';
+        let financeChart = null;
 
-        // Check Backend API Connection and Sync
-        async function checkBackendConnectivity() {
-            try {
-                const res = await fetch(`${API_BASE}/health`, { signal: AbortSignal.timeout(1500) });
-                if (res.ok) {
-                    isBackendOnline = true;
-                    const badge = document.getElementById('backend-status-badge');
-                    if (badge) {
-                        badge.className = 'bg-emerald-50 text-emerald-700 text-xs px-2.5 py-1 rounded-full font-semibold flex items-center gap-1.5 border border-emerald-200';
-                        badge.innerHTML = '<span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span> Backend API Online (Port 8088)';
-                    }
-                    await syncFromBackend();
-                } else {
-                    setOfflineBadge();
-                }
-            } catch (e) {
-                setOfflineBadge();
-            }
-        }
+        // 상태
+        const state = { users: [], schedules: [], todos: [], transactions: [] };
 
-        function setOfflineBadge() {
-            isBackendOnline = false;
-            const badge = document.getElementById('backend-status-badge');
-            if (badge) {
-                badge.className = 'bg-amber-50 text-amber-800 text-xs px-2.5 py-1 rounded-full font-semibold flex items-center gap-1.5 border border-amber-200';
-                badge.innerHTML = '<span class="w-2 h-2 rounded-full bg-amber-500"></span> Local-First Mode (Offline Storage)';
-            }
-        }
-
-        // Fetch data from FastAPI backend when online
-        async function syncFromBackend() {
-            try {
-                // 1. 사용자 목록 조회 (가족 구성원 선택기용)
-                const usersRes = await fetch(`${API_BASE}/users`);
-                if (usersRes.ok) {
-                    const users = await usersRes.json();
-                    if (users && users.length > 0) {
-                        state.users = users;
-                        renderMemberSelector();
-                        // 처음 로드 시 첫 번째 사용자 자동 선택 (전체가 아닌)
-                        if (!state.selectedUserId && users.length > 0) {
-                            state.selectedUserId = users[0].user_id;
-                            state.selectedUserName = users[0].name;
-                            document.getElementById('member-select').value = users[0].user_id;
-                        }
-                    }
-                }
-
-                // 2. 사용자별 거래 조회
-                let txUrl = `${API_BASE}/finance/transactions`;
-                if (state.selectedUserId) {
-                    txUrl += `?user_id=${encodeURIComponent(state.selectedUserId)}`;
-                }
-                const txRes = await fetch(txUrl);
-                if (txRes.ok) {
-                    const txs = await txRes.json();
-                    if (txs && txs.length > 0) state.transactions = txs;
-                    renderTransactions();
-                }
-
-                // 3. 사용자별 일정 조회
-                let calUrl = `${API_BASE}/calendar/events`;
-                if (state.selectedUserId) {
-                    calUrl += `?user_id=${encodeURIComponent(state.selectedUserId)}`;
-                }
-                const calRes = await fetch(calUrl);
-                if (calRes.ok) {
-                    const events = await calRes.json();
-                    if (events && events.length > 0) state.calendarEvents = events;
-                    renderCalendarEvents();
-                }
-
-                // 4. WIKI 문서 조회
-                const docsRes = await fetch(`${API_BASE}/wiki/documents`);
-                if (docsRes.ok) {
-                    const docs = await docsRes.json();
-                    if (docs && docs.length > 0) state.wikiDocs = docs;
-                    renderWikiDocs();
-                }
-
-                // 5. 체크리스트 조회
-                const checkRes = await fetch(`${API_BASE}/checklist`);
-                if (checkRes.ok) {
-                    const cItems = await checkRes.json();
-                    if (cItems && cItems.length > 0) state.checklist = cItems;
-                    renderChecklist();
-                }
-
-                // 재무 KPI 및 차트 갱신
-                updateFinanceKPIs();
-            } catch (e) {
-                console.warn('Backend sync failed, continuing in Local-First mode:', e);
-            }
-        }
-
-        // 멤버 선택기 렌더링
-        function renderMemberSelector() {
-            const select = document.getElementById('member-select');
-            if (!select) return;
-            // 기존 옵션 보존 (첫 번째 "전체 가구원" 옵션 제외하고 모두 제거)
-            while (select.options.length > 1) {
-                select.remove(1);
-            }
-            state.users.forEach(u => {
-                const opt = document.createElement('option');
-                opt.value = u.user_id;
-                opt.textContent = `${u.name} (${u.role})`;
-                select.appendChild(opt);
-            });
-            // 현재 선택된 사용자 복원
-            if (state.selectedUserId) {
-                select.value = state.selectedUserId;
-            }
-        }
-
-        // 멤버 선택 변경 핸들러
-        async function onMemberChange() {
-            const select = document.getElementById('member-select');
-            const val = select.value;
-            state.selectedUserId = val || '';
-            state.selectedUserName = val ? select.options[select.selectedIndex].text.split(' (')[0] : '';
-            saveState();
-            await syncFromBackend();
-        }
-
-        // Initialize App
+        // 초기화
         document.addEventListener('DOMContentLoaded', () => {
-            initClock();
-            renderChecklist();
-            renderTodos();
-            renderCalendarEvents();
-            renderWikiDocs();
-            renderTransactions();
-            initCharts();
-            updateFinanceKPIs();
-            checkBackendConnectivity();
+            checkBackend();
+            document.getElementById('member-select').addEventListener('change', (e) => {
+                selectedUserId = e.target.value;
+                if (selectedUserId) loadUserData();
+                else clearView();
+            });
         });
 
-        // Tab Navigation Switcher (Desktop & Mobile Bottom Bar)
-        function switchTab(tabId) {
-            document.querySelectorAll('main > section').forEach(sec => sec.classList.add('hidden'));
-            document.querySelectorAll('.tab-btn').forEach(btn => {
-                btn.classList.remove('active');
-                btn.classList.add('text-gray-600');
-            });
-
-            // Mobile bottom bar buttons reset
-            document.querySelectorAll('.mobile-tab-btn').forEach(btn => {
-                btn.classList.remove('text-gray-900', 'font-bold');
-                btn.classList.add('text-gray-400');
-            });
-
-            const targetSection = document.getElementById(`view-${tabId}`);
-            const targetBtn = document.getElementById(`tab-btn-${tabId}`);
-            const mobileBtn = document.getElementById(`mobile-tab-${tabId}`);
-
-            if(targetSection) targetSection.classList.remove('hidden');
-            if(targetBtn) {
-                targetBtn.classList.add('active');
-                targetBtn.classList.remove('text-gray-600');
-            }
-            if(mobileBtn) {
-                mobileBtn.classList.remove('text-gray-400');
-                mobileBtn.classList.add('text-gray-900', 'font-bold');
-            }
-        }
-
-        // ================= PWA & Mobile App Features =================
-        let deferredPrompt = null;
-        let wakeLock = null;
-
-        // Register Service Worker
-        if ('serviceWorker' in navigator) {
-            window.addEventListener('load', () => {
-                navigator.serviceWorker.register('./sw.js')
-                    .then(reg => console.log('ServiceWorker registered:', reg.scope))
-                    .catch(err => console.log('ServiceWorker registration failed:', err));
-            });
-        }
-
-        // Catch PWA Install Prompt
-        window.addEventListener('beforeinstallprompt', (e) => {
-            e.preventDefault();
-            deferredPrompt = e;
-            const btn = document.getElementById('pwa-install-btn');
-            if(btn) btn.classList.remove('hidden');
-        });
-
-        async function installPWAApp() {
-            if (deferredPrompt) {
-                deferredPrompt.prompt();
-                const { outcome } = await deferredPrompt.userChoice;
-                if (outcome === 'accepted') {
-                    console.log('User accepted the PWA install prompt');
+        async function checkBackend() {
+            try {
+                const res = await fetch(`${API_BASE}/health`);
+                if (res.ok) {
+                    isOnline = true;
+                    document.getElementById('backend-status').textContent = 'Backend API Online';
+                    document.getElementById('backend-status').className = 'bg-emerald-50 text-emerald-700 text-xs px-2.5 py-1 rounded-full font-semibold';
+                    loadUsers();
                 }
-                deferredPrompt = null;
-            } else {
-                alert('📲 [앱 설치 안내]\n• 안드로이드: 브라우저 메뉴(⋮) > [홈 화면에 추가] 또는 [앱 설치]\n• 아이폰(iOS): 하단 공유(공유 버튼) > [홈 화면에 추가]를 누르시면 네이티브 앱처럼 바로 실행됩니다.');
+            } catch (e) {
+                document.getElementById('backend-status').textContent = 'Offline (Local Mode)';
             }
         }
 
-        // Wallpad Screen Wake Lock (Keep screen on for wallpads/tablets)
-        async function toggleScreenWakeLock() {
-            const btn = document.getElementById('wakelock-btn');
-            const icon = document.getElementById('wakelock-icon');
-            const text = document.getElementById('wakelock-text');
-
-            if ('wakeLock' in navigator) {
-                if (wakeLock !== null) {
-                    await wakeLock.release();
-                    wakeLock = null;
-                    if(btn) btn.className = 'bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs px-2.5 py-1.5 rounded-lg font-semibold flex items-center gap-1 transition-colors';
-                    if(icon) icon.textContent = '💡';
-                    if(text) text.textContent = '화면 켜짐 유지';
-                    alert('거실 월패드 화면 자동 꺼짐 방지가 해제되었습니다.');
-                } else {
-                    try {
-                        wakeLock = await navigator.wakeLock.request('screen');
-                        if(btn) btn.className = 'bg-amber-100 hover:bg-amber-200 text-amber-900 text-xs px-2.5 py-1.5 rounded-lg font-bold flex items-center gap-1 transition-colors border border-amber-300';
-                        if(icon) icon.textContent = '🔆';
-                        if(text) text.textContent = '화면 상시 켜짐 ON';
-                        alert('🔆 거실 월패드 상시 화면 켜짐 유지 기능이 활성화되었습니다.');
-                    } catch (err) {
-                        alert('화면 유지 기능을 활성화할 수 없습니다: ' + err.message);
+        // ---------- 사용자 ----------
+        async function loadUsers() {
+            try {
+                const res = await fetch(`${API_BASE}/users`);
+                if (res.ok) {
+                    state.users = await res.json();
+                    renderUserSelect();
+                    if (state.users.length > 0) {
+                        document.getElementById('member-select').value = state.users[0].user_id;
+                        selectedUserId = state.users[0].user_id;
+                        loadUserData();
                     }
                 }
-            } else {
-                alert('현재 브라우저 환경에서는 Wake Lock API를 지원하지 않습니다.');
-            }
+            } catch (e) { console.warn(e); }
         }
 
-        // Live Clock
-        function initClock() {
-            function update() {
-                const now = new Date();
-                const hours = now.getHours();
-                const minutes = String(now.getMinutes()).padStart(2, '0');
-                const seconds = String(now.getSeconds()).padStart(2, '0');
-                const ampm = hours >= 12 ? '오후' : '오전';
-                const formattedHours = hours % 12 || 12;
-
-                const dayNames = ['일요일', '월요일', '화요일', '수요일', '목요일', '금요일', '토요일'];
-                const month = now.getMonth() + 1;
-                const date = now.getDate();
-                const day = dayNames[now.getDay()];
-
-                const dateStrElem = document.getElementById('clock-date-str');
-                if (dateStrElem) dateStrElem.textContent = `${month}월 ${date}일 ${day}`;
-
-                document.getElementById('clock-ampm').textContent = ampm;
-                document.getElementById('clock-time').textContent = `${formattedHours}:${minutes}`;
-                document.getElementById('clock-sec').textContent = `:${seconds}`;
-
-                const dockTime = document.getElementById('dock-time-label');
-                if (dockTime) dockTime.textContent = `${formattedHours}:${minutes} ${ampm} 갱신`;
-            }
-            update();
-            setInterval(update, 1000);
-        }
-
-        // Calendar Date Click Interaction
-        function selectCalendarDate(dateLabel) {
-            alert(`📅 [캘린더 일정 알림]\n선택일: ${dateLabel}\n예정 이벤트: 바닷가 가족 여행 및 일정 점검`);
-        }
-
-        // Checklist Renderer
-        function renderChecklist() {
-            const container = document.getElementById('checklist-container');
-            if (!container) return;
-            container.innerHTML = '';
-
-            let checkedCount = 0;
-            state.checklist.forEach(item => {
-                if (item.checked) checkedCount++;
-
-                const div = document.createElement('div');
-                div.className = `flex items-center gap-1.5 p-1 rounded cursor-pointer transition-colors ${item.checked ? 'text-emerald-700 font-bold bg-emerald-50' : 'text-gray-600 hover:bg-gray-50'}`;
-                div.onclick = () => toggleChecklist(item.id);
-
-                div.innerHTML = `
-                    <span class="w-3.5 h-3.5 rounded border text-[10px] flex items-center justify-center font-bold flex-shrink-0 ${item.checked ? 'border-emerald-600 bg-emerald-600 text-white' : 'border-gray-300'}">
-                        ${item.checked ? '✓' : ''}
-                    </span>
-                    <span class="truncate ${item.checked ? 'line-through opacity-80' : ''}">${item.name}</span>
-                `;
-                container.appendChild(div);
+        function renderUserSelect() {
+            const sel = document.getElementById('member-select');
+            sel.innerHTML = '<option value="">사용자 선택...</option>';
+            state.users.forEach(u => {
+                const o = document.createElement('option');
+                o.value = u.user_id;
+                o.textContent = `${u.name} (${u.role})`;
+                sel.appendChild(o);
             });
-
-            const total = state.checklist.length;
-            const percent = total > 0 ? (checkedCount / total) * 100 : 0;
-            document.getElementById('checklist-counter').textContent = `챙김 ${checkedCount}/${total}`;
-            document.getElementById('checklist-progressbar').style.width = `${percent}%`;
-            saveState();
         }
 
-        function toggleChecklist(id) {
-            const item = state.checklist.find(i => i.id === id);
-            if (item) {
-                item.checked = !item.checked;
-                renderChecklist();
-            }
-        }
-
-        function checkAllChecklist() {
-            state.checklist.forEach(i => i.checked = true);
-            renderChecklist();
-        }
-
-        // Todo Renderer
-        function renderTodos() {
-            const jihoonContainer = document.getElementById('jihoon-todo-list');
-            const minseoContainer = document.getElementById('minseo-todo-list');
-
-            if (!jihoonContainer || !minseoContainer) return;
-
-            jihoonContainer.innerHTML = '';
-            minseoContainer.innerHTML = '';
-
-            state.jihoonTodos.forEach(t => {
-                const item = document.createElement('div');
-                item.className = 'flex items-center gap-2 cursor-pointer p-1 rounded hover:bg-gray-50 transition-colors';
-                item.onclick = () => { t.done = !t.done; renderTodos(); saveState(); };
-                item.innerHTML = `
-                    <span class="w-4 h-4 rounded border flex items-center justify-center font-bold text-xs flex-shrink-0 ${t.done ? 'bg-blue-600 border-blue-600 text-white' : 'border-gray-300'}">
-                        ${t.done ? '✓' : ''}
-                    </span>
-                    <span class="${t.done ? 'line-through text-gray-400' : 'text-gray-700'}">${t.title}</span>
-                `;
-                jihoonContainer.appendChild(item);
-            });
-
-            state.minseoTodos.forEach(t => {
-                const item = document.createElement('div');
-                item.className = 'flex items-center gap-2 cursor-pointer p-1 rounded hover:bg-gray-50 transition-colors';
-                item.onclick = () => { t.done = !t.done; renderTodos(); saveState(); };
-                item.innerHTML = `
-                    <span class="w-4 h-4 rounded border flex items-center justify-center font-bold text-xs flex-shrink-0 ${t.done ? 'bg-emerald-600 border-emerald-600 text-white' : 'border-gray-300'}">
-                        ${t.done ? '✓' : ''}
-                    </span>
-                    <span class="${t.done ? 'line-through text-gray-400' : 'text-gray-700'}">${t.title}</span>
-                `;
-                minseoContainer.appendChild(item);
-            });
-
-            document.getElementById('jihoon-count').textContent = state.jihoonTodos.filter(t => !t.done).length;
-            document.getElementById('minseo-count').textContent = state.minseoTodos.filter(t => !t.done).length;
-            saveState();
-        }
-
-        // Finance Transactions Renderer & Filter
-        function filterTransactions(type) {
-            state.currentTxFilter = type;
-            ['ALL', 'EXPENSE', 'INCOME'].forEach(t => {
-                const btn = document.getElementById(`filter-btn-${t}`);
-                if (btn) {
-                    if (t === type) {
-                        btn.className = 'bg-gray-800 text-white px-2 py-0.5 rounded font-medium';
-                    } else {
-                        btn.className = 'bg-gray-100 text-gray-600 hover:bg-gray-200 px-2 py-0.5 rounded font-medium';
-                    }
+        async function saveUser() {
+            const id = document.getElementById('u-id').value.trim();
+            const name = document.getElementById('u-name').value.trim();
+            if (!id || !name) return alert('ID와 이름을 입력하세요.');
+            try {
+                const res = await fetch(`${API_BASE}/users`, {
+                    method: 'POST', headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ user_id: id, name, role: document.getElementById('u-role').value, color_code: document.getElementById('u-color').value, avatar_initial: document.getElementById('u-avatar').value || '?' })
+                });
+                if (res.ok) {
+                    closeModal('user-modal');
+                    await loadUsers();
+                    alert('사용자 등록 완료');
                 }
-            });
-            renderTransactions();
+            } catch (e) { console.warn(e); }
         }
 
-        function renderTransactions() {
-            const tbody = document.getElementById('finance-table-body');
-            if (!tbody) return;
-            tbody.innerHTML = '';
+        function openUserModal() { document.getElementById('user-modal').classList.remove('hidden'); document.getElementById('user-modal').classList.add('flex'); }
 
-            // 현재 선택된 사용자 표시
-            const memberLabel = document.createElement('div');
-            memberLabel.className = 'mb-2 flex items-center justify-between';
-            memberLabel.innerHTML = `
-                <span class="text-xs font-bold text-gray-500 uppercase">
-                    ${state.selectedUserName ? state.selectedUserName + '님의 가계부' : '전체 가구원 가계부'}
-                </span>
-                ${state.selectedUserId ? `<button onclick="document.getElementById('member-select').value=''; onMemberChange()" class="text-[10px] text-gray-400 hover:text-gray-700 underline">전체 보기</button>` : ''}
+        // ---------- 데이터 로드 ----------
+        async function loadUserData() {
+            if (!selectedUserId) return;
+            const [sRes, tRes, fRes] = await Promise.all([
+                fetch(`${API_BASE}/calendar/events?user_id=${selectedUserId}`),
+                fetch(`${API_BASE}/todos?user_id=${selectedUserId}`),
+                fetch(`${API_BASE}/finance/transactions?user_id=${selectedUserId}`)
+            ]);
+            if (sRes.ok) state.schedules = await sRes.json();
+            if (tRes.ok) state.todos = await tRes.json();
+            if (fRes.ok) state.transactions = await fRes.json();
+
+            renderDashboard();
+            renderSchedule();
+            renderTodo();
+            renderFinance();
+        }
+
+        function clearView() {
+            selectedUserId = '';
+            state.schedules = []; state.todos = []; state.transactions = [];
+            renderDashboard(); renderSchedule(); renderTodo(); renderFinance();
+        }
+
+        function renderDashboard() {
+            const u = state.users.find(x => x.user_id === selectedUserId);
+            document.getElementById('user-name').textContent = u ? u.name : '사용자를 선택하세요';
+            document.getElementById('user-role').textContent = u ? u.role : '';
+            document.getElementById('user-avatar').textContent = u ? u.avatar_initial : '?';
+            document.getElementById('user-avatar').style.backgroundColor = u ? u.color_code : '#CBD5E0';
+
+            // 일정
+            const schedContainer = document.getElementById('dashboard-schedule');
+            schedContainer.innerHTML = '';
+            const today = new Date().toISOString().slice(0, 10);
+            const todaySched = state.schedules.filter(s => s.start_time.startsWith(today));
+            if (todaySched.length === 0) schedContainer.innerHTML = '<div class="empty-state">오늘 예정된 일정이 없습니다.</div>';
+            else todaySched.forEach(s => {
+                schedContainer.innerHTML += `<div class="p-3 bg-blue-50 border border-blue-100 rounded-lg"><div class="font-bold text-gray-800 text-xs">${s.title}</div><div class="text-[10px] text-gray-500">${new Date(s.start_time).toLocaleTimeString('ko-KR', {hour:'2-digit',minute:'2-digit'})}</div></div>`;
+            });
+
+            // 가계부 요약
+            const finContainer = document.getElementById('dashboard-finance');
+            finContainer.innerHTML = '';
+            const income = state.transactions.filter(t => t.type === 'INCOME').reduce((a,b) => a + b.amount, 0);
+            const expense = state.transactions.filter(t => t.type === 'EXPENSE').reduce((a,b) => a + b.amount, 0);
+            finContainer.innerHTML = `
+                <div class="flex justify-between items-center"><span class="text-xs text-gray-500">총 수입</span><span class="font-bold text-blue-600">₩ ${income.toLocaleString()}</span></div>
+                <div class="flex justify-between items-center"><span class="text-xs text-gray-500">총 지출</span><span class="font-bold text-red-600">₩ ${expense.toLocaleString()}</span></div>
+                <div class="flex justify-between items-center mt-2 pt-2 border-t border-gray-100"><span class="text-xs text-gray-500">순 저축</span><span class="font-bold text-emerald-600">₩ ${(income - expense).toLocaleString()}</span></div>
             `;
-            tbody.parentNode.insertBefore(memberLabel, tbody);
-
-            const filtered = state.transactions.filter(tx => {
-                if (state.currentTxFilter === 'ALL') return true;
-                return tx.type === state.currentTxFilter;
-            });
-
-            filtered.forEach(tx => {
-                const tr = document.createElement('tr');
-                tr.className = 'hover:bg-gray-50';
-                const isExpense = tx.type === 'EXPENSE';
-                tr.innerHTML = `
-                    <td class="p-2 font-mono text-gray-400">${tx.date}</td>
-                    <td class="p-2 font-bold ${isExpense ? 'text-red-500' : 'text-blue-600'}">${isExpense ? '지출' : '수입'}</td>
-                    <td class="p-2 font-medium text-gray-800">${tx.title} <span class="text-[10px] bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded ml-1">${tx.category}</span></td>
-                    <td class="p-2 text-gray-500">${tx.method || '-'}</td>
-                    <td class="p-2 text-right font-bold font-mono ${isExpense ? 'text-red-600' : 'text-blue-600'}">
-                        ${isExpense ? '-' : '+'}₩ ${tx.amount.toLocaleString()}
-                    </td>
-                    <td class="p-2 text-center">
-                        <button onclick="deleteTransaction('${tx.id}')" class="text-gray-300 hover:text-red-500 font-bold px-1" title="삭제">✕</button>
-                    </td>
-                `;
-                tbody.appendChild(tr);
-            });
-
-            const countElem = document.getElementById('tx-count-text');
-            if (countElem) countElem.textContent = `총 ${filtered.length}건`;
-
-            updateFinanceKPIs();
-            saveState();
         }
 
-        // 캘린더 이벤트 렌더링 (선택된 사용자 기준)
-        function renderCalendarEvents() {
-            const container = document.getElementById('calendar-events-container');
-            const countElem = document.getElementById('cal-event-count');
-            if (!container) return;
+        // ---------- 일정 ----------
+        function renderSchedule() {
+            const container = document.getElementById('schedule-list');
             container.innerHTML = '';
-
-            const events = state.calendarEvents
-                .filter(e => !state.selectedUserId || e.user_id === state.selectedUserId)
-                .sort((a, b) => new Date(a.start_time) - new Date(b.start_time));
-
-            if (countElem) countElem.textContent = `${events.length}개`;
-
-            if (events.length === 0) {
-                container.innerHTML = `<div class="text-gray-400 text-[10px] text-center py-3">등록된 일정이 없습니다.</div>`;
-                return;
-            }
-
-            events.forEach(ev => {
-                const item = document.createElement('div');
-                item.className = 'flex items-center justify-between p-2 bg-gray-50 border border-gray-100 rounded-lg cursor-pointer hover:bg-blue-50 transition-colors';
-                item.innerHTML = `
+            if (state.schedules.length === 0) { container.innerHTML = '<div class="empty-state">등록된 일정이 없습니다.</div>'; return; }
+            state.schedules.sort((a,b) => new Date(a.start_time) - new Date(b.start_time)).forEach(s => {
+                container.innerHTML += `
+                <div class="flex items-center justify-between p-3 bg-white border border-gray-100 rounded-lg fade-in">
                     <div class="flex-grow">
-                        <div class="flex items-center gap-1.5">
-                            <span class="w-2 h-2 rounded-full" style="background:${ev.color_tag || '#6B7280'}"></span>
-                            <span class="font-bold text-gray-800 text-xs">${ev.title}</span>
-                            <span class="text-[9px] text-gray-500 bg-white px-1 py-0 rounded border border-gray-100 ml-1">${ev.category || '일정'}</span>
-                        </div>
-                        <div class="text-[9px] text-gray-500 font-mono mt-0.5">
-                            ${new Date(ev.start_time).toLocaleString('ko-KR', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
-                        </div>
+                        <div class="font-bold text-gray-800 text-sm">${s.title}</div>
+                        <div class="text-xs text-gray-500">${new Date(s.start_time).toLocaleString('ko-KR', {month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit'})} ~ ${new Date(s.end_time).toLocaleString('ko-KR', {hour:'2-digit',minute:'2-digit'})}</div>
+                        <div class="text-[10px] bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded inline-block mt-1">${s.category}</div>
                     </div>
-                    <button onclick="deleteCalendarEvent('${ev.event_id}')" class="text-gray-300 hover:text-red-500 font-bold px-1" title="삭제">✕</button>
-                `;
-                container.appendChild(item);
+                    <button onclick="deleteSchedule('${s.event_id}')" class="text-gray-300 hover:text-red-500 font-bold">✕</button>
+                </div>`;
             });
         }
 
-        async function deleteCalendarEvent(eventId) {
-            if (confirm('이 일정을 삭제하시겠습니까?')) {
-                let deleted = false;
-                if (isBackendOnline) {
-                    try {
-                        const res = await fetch(`${API_BASE}/calendar/events/${eventId}`, { method: 'DELETE' });
-                        if (res.ok) deleted = true;
-                        else console.warn('Backend delete event failed:', res.status);
-                    } catch (e) {
-                        console.warn('Backend delete event failed:', e);
-                    }
-                } else {
-                    deleted = true;
-                }
-                if (deleted) {
-                    state.calendarEvents = state.calendarEvents.filter(e => e.event_id !== eventId);
-                    renderCalendarEvents();
-                    saveState();
-                }
-            }
+        async function saveSchedule() {
+            const title = document.getElementById('s-title').value.trim();
+            if (!title) return;
+            try {
+                const res = await fetch(`${API_BASE}/calendar/events`, {
+                    method: 'POST', headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ user_id: selectedUserId, title: title, start_time: document.getElementById('s-start').value, end_time: document.getElementById('s-end').value, category: document.getElementById('s-cat').value, color_tag: document.getElementById('s-color').value, description: document.getElementById('s-desc').value })
+                });
+                if (res.ok) { closeModal('schedule-modal'); loadUserData(); }
+            } catch(e) { console.warn(e); }
         }
 
-        async function deleteTransaction(id) {
-            if (confirm('이 거래 내역을 삭제하시겠습니까?')) {
-                let deleted = false;
-                if (isBackendOnline) {
-                    try {
-                        const res = await fetch(`${API_BASE}/finance/transactions/${id}`, { method: 'DELETE' });
-                        if (res.ok) deleted = true;
-                        else console.warn('Backend delete tx failed:', res.status);
-                    } catch (e) {
-                        console.warn('Backend delete tx failed:', e);
-                    }
-                } else {
-                    deleted = true;
-                }
-                if (deleted) {
-                    state.transactions = state.transactions.filter(t => t.id !== id);
-                    renderTransactions();
-                    saveState();
-                }
-            }
+        async function deleteSchedule(id) {
+            if (!confirm('삭제하시겠습니까?')) return;
+            await fetch(`${API_BASE}/calendar/events/${id}`, { method: 'DELETE' });
+            loadUserData();
         }
 
-        // 사용자 등록 모달
-        function openNewUserModal() {
-            document.getElementById('new-user-modal').classList.remove('hidden');
-            document.getElementById('new-user-modal').classList.add('flex');
-        }
-        function closeNewUserModal() {
-            document.getElementById('new-user-modal').classList.add('hidden');
-            document.getElementById('new-user-modal').classList.remove('flex');
-        }
-        async function saveNewUser() {
-            const userId = document.getElementById('user-id-input').value.trim();
-            const name = document.getElementById('user-name-input').value.trim();
-            const role = document.getElementById('user-role-input').value;
-            const avatar = document.getElementById('user-avatar-input').value.trim() || '?';
-            const birth = document.getElementById('user-birth-input').value || undefined;
-            const color = document.getElementById('user-color-input').value;
-
-            if (!userId || !name) {
-                alert('사용자 ID와 이름을 입력하세요.');
-                return;
-            }
-
-            if (isBackendOnline) {
-                try {
-                    const res = await fetch(`${API_BASE}/users`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ user_id: userId, name, role, color_code: color, avatar_initial: avatar, birth_date: birth })
-                    });
-                    if (res.ok) {
-                        const newUser = await res.json();
-                        state.users.push(newUser);
-                        renderMemberSelector();
-                        state.selectedUserId = newUser.user_id;
-                        state.selectedUserName = newUser.name;
-                        document.getElementById('member-select').value = newUser.user_id;
-                        closeNewUserModal();
-                        await syncFromBackend();
-                        alert(`✓ ${newUser.name} 사용자가 등록되었습니다!`);
-                        return;
-                    }
-                } catch (e) {
-                    console.warn('Backend user create failed:', e);
-                }
-            }
-
-            // Local fallback
-            const newUser = { user_id: userId, name, role, color_code: color, avatar_initial: avatar, birth_date: birth };
-            state.users.push(newUser);
-            renderMemberSelector();
-            state.selectedUserId = newUser.user_id;
-            state.selectedUserName = newUser.name;
-            document.getElementById('member-select').value = newUser.user_id;
-            closeNewUserModal();
-            saveState();
-            alert(`✓ ${newUser.name} 사용자가 등록되었습니다 (로컬 저장).`);
+        function openScheduleModal() {
+            const now = new Date().toISOString().slice(0, 16);
+            document.getElementById('s-start').value = now;
+            document.getElementById('s-end').value = now;
+            document.getElementById('schedule-modal').classList.remove('hidden');
+            document.getElementById('schedule-modal').classList.add('flex');
         }
 
-        // 캘린더 등록 모달
-        function openNewCalendarModal() {
-            // 시작/종료 일시에 오늘 날짜 기본값 설정
-            const now = new Date();
-            const localStr = now.toISOString().slice(0, 16);
-            document.getElementById('cal-start-input').value = localStr;
-            document.getElementById('cal-end-input').value = localStr;
-            document.getElementById('new-calendar-modal').classList.remove('hidden');
-            document.getElementById('new-calendar-modal').classList.add('flex');
-        }
-        function closeNewCalendarModal() {
-            document.getElementById('new-calendar-modal').classList.add('hidden');
-            document.getElementById('new-calendar-modal').classList.remove('flex');
-        }
-        async function saveNewCalendarEvent() {
-            const title = document.getElementById('cal-title-input').value.trim();
-            const start = document.getElementById('cal-start-input').value;
-            const end = document.getElementById('cal-end-input').value;
-            const category = document.getElementById('cal-cat-input').value;
-            const color = document.getElementById('cal-color-input').value;
-            const desc = document.getElementById('cal-desc-input').value.trim();
-
-            if (!title || !start || !end) {
-                alert('제목, 시작 일시, 종료 일시를 모두 입력하세요.');
-                return;
-            }
-
-            if (isBackendOnline) {
-                try {
-                    const res = await fetch(`${API_BASE}/calendar/events`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            user_id: state.selectedUserId || undefined,
-                            title,
-                            start_time: start,
-                            end_time: end,
-                            category,
-                            color_tag: color,
-                            description: desc
-                        })
-                    });
-                    if (res.ok) {
-                        const newEv = await res.json();
-                        state.calendarEvents.push(newEv);
-                        renderCalendarEvents();
-                        closeNewCalendarModal();
-                        saveState();
-                        alert('✓ 일정이 등록되었습니다!');
-                        return;
-                    }
-                } catch (e) {
-                    console.warn('Backend calendar create failed:', e);
-                }
-            }
-
-            // Local fallback
-            const newEv = {
-                event_id: `evt-${Date.now()}`,
-                user_id: state.selectedUserId || '',
-                title, start_time: start, end_time: end,
-                category, color_tag: color, description: desc
-            };
-            state.calendarEvents.push(newEv);
-            renderCalendarEvents();
-            closeNewCalendarModal();
-            saveState();
-            alert('✓ 일정이 등록되었습니다 (로컬 저장).');
-        }
-
-        // Export Transactions as CSV
-        function exportTransactionsCSV() {
-            let csv = "날짜,구분,항목명,카테고리,결제수단,금액\n";
-            state.transactions.forEach(t => {
-                csv += `"${t.date}","${t.type === 'EXPENSE' ? '지출' : '수입'}","${t.title}","${t.category}","${t.method}","${t.amount}"\n`;
-            });
-            const blob = new Blob(["\uFEFF" + csv], { type: 'text/csv;charset=utf-8;' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `family_finance_${new Date().toISOString().slice(0, 10)}.csv`;
-            a.click();
-            URL.revokeObjectURL(url);
-        }
-
-        // Recalculate Finance KPIs & Refresh Charts
-        function updateFinanceKPIs() {
-            let totalIncome = 0;
-            let totalExpense = 0;
-            const categorySums = {
-                '식비': 0,
-                '육아/교육': 0,
-                '주거/통신': 0,
-                '쇼핑/생활': 0,
-                '기타': 0
-            };
-
-            state.transactions.forEach(tx => {
-                if (tx.type === 'INCOME') {
-                    totalIncome += tx.amount;
-                } else {
-                    totalExpense += tx.amount;
-                    if (categorySums[tx.category] !== undefined) {
-                        categorySums[tx.category] += tx.amount;
-                    } else {
-                        categorySums['기타'] += tx.amount;
-                    }
-                }
-            });
-
-            const netSavings = totalIncome - totalExpense;
-            const budgetLimit = 3000000;
-            const budgetRatio = Math.min(Math.round((totalExpense / budgetLimit) * 1000) / 10, 100);
-            const remainingBudget = Math.max(budgetLimit - totalExpense, 0);
-
-            const incElem = document.getElementById('total-income-text');
-            const expElem = document.getElementById('total-expense-text');
-            const savElem = document.getElementById('net-savings-text');
-            const barElem = document.getElementById('budget-progressbar');
-            const statusElem = document.getElementById('budget-status-text');
-            const ratioElem = document.getElementById('budget-ratio-text');
-
-            if (incElem) incElem.textContent = `₩ ${totalIncome.toLocaleString()}`;
-            if (expElem) expElem.textContent = `₩ ${totalExpense.toLocaleString()}`;
-            if (savElem) savElem.textContent = `₩ ${netSavings.toLocaleString()}`;
-            if (ratioElem) ratioElem.textContent = `${(totalExpense / 1000000).toFixed(1)}M / ${(budgetLimit / 1000000).toFixed(1)}M`;
-            if (barElem) {
-                barElem.style.width = `${budgetRatio}%`;
-                if (budgetRatio > 90) barElem.className = 'bg-red-500 h-full rounded-full transition-all duration-300';
-                else if (budgetRatio > 75) barElem.className = 'bg-amber-500 h-full rounded-full transition-all duration-300';
-                else barElem.className = 'bg-blue-500 h-full rounded-full transition-all duration-300';
-            }
-            if (statusElem) statusElem.textContent = `남은 예산: ₩ ${remainingBudget.toLocaleString()} (${budgetRatio}% 사용)`;
-
-            // Update Doughnut Chart if instance exists
-            if (state.expenseChartInstance) {
-                state.expenseChartInstance.data.datasets[0].data = [
-                    categorySums['식비'],
-                    categorySums['육아/교육'],
-                    categorySums['주거/통신'],
-                    categorySums['쇼핑/생활'],
-                    categorySums['기타']
-                ];
-                state.expenseChartInstance.update();
-            }
-        }
-
-        // OCR Receipt Scan Simulation & File Upload
-        let currentScannedFile = null;
-
-        function handleReceiptFileUpload(event) {
-            const file = event.target.files[0];
-            if (!file) return;
-
-            currentScannedFile = file;
-            const nameElem = document.getElementById('file-preview-name');
-            nameElem.textContent = `선택된 파일: ${file.name} (${Math.round(file.size / 1024)}KB)`;
-            nameElem.classList.remove('hidden');
-
-            runOcrScanFlow(file.name, file);
-        }
-
-        function triggerOcrScanSimulation() {
-            currentScannedFile = null;
-            runOcrScanFlow('sample_sokcho_mart_receipt.jpg', null);
-        }
-
-        async function runOcrScanFlow(fileName, fileObj) {
-            const laser = document.getElementById('laser-line-element');
-            laser.classList.remove('hidden');
-
-            const card = document.getElementById('ocr-result-card');
-            card.classList.add('animate-pulse');
-
-            if (isBackendOnline) {
-                try {
-                    const formData = new FormData();
-                    if (fileObj) {
-                        formData.append('file', fileObj);
-                    } else {
-                        formData.append('filename_override', fileName);
-                    }
-                    const res = await fetch(`${API_BASE}/receipts/scan`, {
-                        method: 'POST',
-                        body: formData
-                    });
-                    if (res.ok) {
-                        const data = await res.json();
-                        laser.classList.add('hidden');
-                        card.classList.remove('animate-pulse');
-
-                        document.getElementById('ocr-store-name').textContent = data.store_name;
-                        document.getElementById('ocr-date').textContent = data.scanned_at;
-                        document.getElementById('ocr-total-amount').textContent = `₩ ${data.total_amount.toLocaleString()}`;
-
-                        let itemsHtml = '';
-                        data.items.forEach(it => {
-                            itemsHtml += `<div class="flex justify-between"><span>${it.name}</span><span>₩ ${it.total_price.toLocaleString()}</span></div>`;
-                        });
-                        document.getElementById('ocr-items-list').innerHTML = itemsHtml;
-                        alert(`🔍 [FastAPI OCR Engine] 스캔 완료!\n가맹점: ${data.store_name}\n인식 신뢰도: ${(data.ocr_confidence * 100).toFixed(1)}%`);
-                        return;
-                    }
-                } catch (e) {
-                    console.warn('Backend OCR call failed, falling back to local simulation:', e);
-                }
-            }
-
-            // Fallback Local Simulation
-            setTimeout(() => {
-                laser.classList.add('hidden');
-                card.classList.remove('animate-pulse');
-
-                const isAlternative = Math.random() > 0.5;
-                if (isAlternative) {
-                    document.getElementById('ocr-store-name').textContent = '하나로마트 속초농협점';
-                    document.getElementById('ocr-date').textContent = new Date().toISOString().slice(0, 16).replace('T', ' ');
-                    document.getElementById('ocr-items-list').innerHTML = `
-                        <div class="flex justify-between"><span>강원도 한우 국거리</span><span>₩ 24,000</span></div>
-                        <div class="flex justify-between"><span>신선 사과 1봉</span><span>₩ 8,900</span></div>
-                        <div class="flex justify-between"><span>생수 2L 6팩</span><span>₩ 3,200</span></div>
-                    `;
-                    document.getElementById('ocr-total-amount').textContent = '₩ 36,100';
-                } else {
-                    document.getElementById('ocr-store-name').textContent = '이마트 속초점';
-                    document.getElementById('ocr-date').textContent = new Date().toISOString().slice(0, 16).replace('T', ' ');
-                    document.getElementById('ocr-items-list').innerHTML = `
-                        <div class="flex justify-between"><span>수영복 세트 (하늘)</span><span>₩ 45,000</span></div>
-                        <div class="flex justify-between"><span>유기농 우유 1L</span><span>₩ 3,400</span></div>
-                        <div class="flex justify-between"><span>아이스팩 패크</span><span>₩ 2,500</span></div>
-                    `;
-                    document.getElementById('ocr-total-amount').textContent = '₩ 50,900';
-                }
-
-                alert('🔍 OCR 영수증 스캔 완료! 상호명, 개별 품목 및 총 금액이 자동 파싱되었습니다.');
-            }, 800);
-        }
-
-        async function confirmOcrToTransaction() {
-            const store = document.getElementById('ocr-store-name').textContent;
-            const amountText = document.getElementById('ocr-total-amount').textContent;
-            const amount = parseInt(amountText.replace(/[^0-9]/g, ''), 10) || 36100;
-            const todayStr = new Date().toISOString().split('T')[0];
-
-            if (isBackendOnline) {
-                try {
-                    const res = await fetch(`${API_BASE}/finance/transactions`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            user_id: state.selectedUserId || undefined,
-                            type: 'EXPENSE',
-                            title: `${store} (OCR 영수증)`,
-                            category: '식비',
-                            payment_method: '신한카드',
-                            amount: amount,
-                            transaction_date: todayStr
-                        })
-                    });
-                    if (res.ok) {
-                        const newTx = await res.json();
-                        state.transactions.unshift(newTx);
-                        renderTransactions();
-                        alert('✓ [FastAPI DB 연동] 영수증 지출이 서버 원장에 영구 기록되었습니다!');
-                        return;
-                    }
-                } catch (e) {
-                    console.warn('Backend create tx failed:', e);
-                }
-            }
-
-            state.transactions.unshift({
-                id: `tx-${Date.now()}`,
-                date: todayStr,
-                user_id: state.selectedUserId || '',
-                type: 'EXPENSE',
-                title: `${store} (OCR 영수증)`,
-                category: '식비',
-                method: '신한카드',
-                amount: amount
-            });
-
-            renderTransactions();
-            alert('✓ 영수증 지출 내역이 가계부에 등록되었으며, 카테고리 차트와 통계가 갱신되었습니다!');
-        }
-
-        function openNewTransModal() {
-            document.getElementById('new-trans-modal').classList.remove('hidden');
-            document.getElementById('new-trans-modal').classList.add('flex');
-        }
-
-        function closeNewTransModal() {
-            document.getElementById('new-trans-modal').classList.add('hidden');
-            document.getElementById('new-trans-modal').classList.remove('flex');
-        }
-
-        async function saveNewTransaction() {
-            const type = document.getElementById('trans-type-input').value;
-            const title = document.getElementById('trans-title-input').value.trim();
-            const amount = parseInt(document.getElementById('trans-amount-input').value, 10);
-            const category = document.getElementById('trans-cat-input').value;
-            const method = document.getElementById('trans-method-input').value;
-            const todayStr = new Date().toISOString().split('T')[0];
-
-            if (!title || isNaN(amount) || amount <= 0) {
-                alert('올바른 항목명과 0원보다 큰 금액을 입력하세요.');
-                return;
-            }
-
-            if (isBackendOnline) {
-                try {
-                    const res = await fetch(`${API_BASE}/finance/transactions`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            user_id: state.selectedUserId || undefined,
-                            type: type,
-                            title: title,
-                            amount: amount,
-                            category: category,
-                            payment_method: method,
-                            transaction_date: todayStr
-                        })
-                    });
-                    if (res.ok) {
-                        const newTx = await res.json();
-                        state.transactions.unshift(newTx);
-                        renderTransactions();
-                        closeNewTransModal();
-                        return;
-                    }
-                } catch (e) {
-                    console.warn('Backend tx create failed:', e);
-                }
-            }
-
-            state.transactions.unshift({
-                id: `tx-${Date.now()}`,
-                date: todayStr,
-                user_id: state.selectedUserId || '',
-                type: type,
-                title: title,
-                category: category,
-                method: method,
-                amount: amount
-            });
-
-            renderTransactions();
-            closeNewTransModal();
-        }
-
-        // Chat Agent Handling with Dynamic Data Querying
-        async function handleChatSubmit(e) {
-            e.preventDefault();
-            const input = document.getElementById('chat-input');
-            const prompt = input.value.trim();
-            if (!prompt) return;
-
-            appendChatMessage('user', prompt);
-            input.value = '';
-
-            if (isBackendOnline) {
-                try {
-                    const res = await fetch(`${API_BASE}/llm/chat`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ prompt: prompt, enable_agent_action: true })
-                    });
-                    if (res.ok) {
-                        const data = await res.json();
-                        appendChatMessage('bot', data.answer);
-                        return;
-                    }
-                } catch (e) {
-                    console.warn('Backend LLM call failed, fallback to local:', e);
-                }
-            }
-
-            // Simulate RAG & Function Calling Response with Typing Streaming Effect
-            setTimeout(() => {
-                let botReply = '';
-                if (prompt.includes('지출') || prompt.includes('얼마')) {
-                    const totalExp = state.transactions.filter(t => t.type === 'EXPENSE').reduce((a, b) => a + b.amount, 0);
-                    botReply = `💰 <b>[가계부 DB 실시간 조회]</b><br/>2026년 11월 총 지출은 <b>₩ ${totalExp.toLocaleString()} 원</b> 입니다.<br/>(식비 및 육아/교육 비중이 가장 높습니다)`;
-                } else if (prompt.includes('준비물') || prompt.includes('챙겼는지') || prompt.includes('여행')) {
-                    const unchecked = state.checklist.filter(i => !i.checked).map(i => i.name);
-                    const checkedCount = state.checklist.filter(i => i.checked).length;
-                    botReply = `🎒 <b>[RAG 지식 검색: 속초 여행 계획]</b><br/>전체 17개 물품 중 ${checkedCount}개 완료되었습니다.<br/><b>아직 안 챙긴 물품 (${unchecked.length}개):</b><br/>[${unchecked.join(', ')}]`;
-                } else if (prompt.includes('생일') || prompt.includes('캘린더')) {
-                    botReply = `📅 <b>[LLM Tool Execution]</b><br/><b>'바다 생일 (11월 20일)'</b> 일정을 가족 통합 캘린더 DB에 성공적으로 등록했습니다! D-15 알림이 설정되었습니다.`;
-                } else if (prompt.includes('학원비') || prompt.includes('수영')) {
-                    const swimTx = state.transactions.find(t => t.title.includes('수영'));
-                    if (swimTx) {
-                        botReply = `🏊 <b>[가계부 내역 탐색]</b><br/>하늘이 수영 학원비 <b>₩ ${swimTx.amount.toLocaleString()}원</b>은 <b>${swimTx.date}</b>에 <b>${swimTx.method}</b>로 정상 결제되었습니다.`;
-                    } else {
-                        botReply = `하늘이 수영 학원비 결제 내역을 조회 중입니다.`;
-                    }
-                } else {
-                    botReply = `🤖 입력하신 질문 <i>"${prompt}"</i> 에 대해 가족 WIKI 마크다운 문서 및 pgvector 임베딩 지식베이스를 탐색했습니다.<br/>자세한 지침은 우측 WIKI 문서를 참고하세요.`;
-                }
-                appendChatMessage('bot', botReply);
-            }, 500);
-        }
-
-        function sendPresetPrompt(text) {
-            document.getElementById('chat-input').value = text;
-            handleChatSubmit(new Event('submit'));
-        }
-
-        function appendChatMessage(sender, htmlText) {
-            const container = document.getElementById('chat-messages-container');
-            const div = document.createElement('div');
-            div.className = `flex gap-3 ${sender === 'user' ? 'justify-end' : ''}`;
-
-            if (sender === 'user') {
-                div.innerHTML = `
-                    <div class="bg-blue-600 text-white p-3 rounded-2xl rounded-tr-none max-w-[85%] shadow-xs">
-                        ${htmlText}
-                    </div>
-                `;
-            } else {
-                div.innerHTML = `
-                    <div class="w-8 h-8 rounded-full bg-amber-500 text-white flex items-center justify-center font-bold text-xs flex-shrink-0 shadow-xs">
-                        AI
-                    </div>
-                    <div class="bg-amber-50 text-gray-800 p-3 rounded-2xl rounded-tl-none max-w-[85%] border border-amber-100 leading-relaxed shadow-xs">
-                        ${htmlText}
-                    </div>
-                `;
-            }
-            container.appendChild(div);
-            container.scrollTop = container.scrollHeight;
-        }
-
-        // WIKI Docs Manager
-        function renderWikiDocs() {
-            const container = document.getElementById('wiki-docs-container');
-            if (!container) return;
+        // ---------- 할일 ----------
+        function renderTodo() {
+            const container = document.getElementById('todo-list');
             container.innerHTML = '';
-
-            state.wikiDocs.forEach(doc => {
-                const item = document.createElement('div');
-                item.className = 'p-3 bg-gray-50 border border-gray-200 rounded-xl space-y-1 hover:border-amber-300 transition-colors cursor-pointer';
-                item.onclick = () => {
-                    alert(`📖 [WIKI 문서 전문 열람]\n제목: ${doc.title}\n분류: ${doc.category}\n작성일: ${doc.date}\n\n${doc.content}`);
-                };
-                item.innerHTML = `
-                    <div class="flex items-center justify-between">
-                        <span class="font-bold text-gray-800 text-xs">${doc.title}</span>
-                        <span class="bg-amber-100 text-amber-800 text-[10px] px-2 py-0.5 rounded font-semibold">${doc.category}</span>
+            if (state.todos.length === 0) { container.innerHTML = '<div class="empty-state">등록된 할일이 없습니다.</div>'; return; }
+            state.todos.forEach(t => {
+                container.innerHTML += `
+                <div class="flex items-center justify-between p-3 bg-white border border-gray-100 rounded-lg fade-in">
+                    <div class="flex items-center gap-2 cursor-pointer" onclick="toggleTodo('${t.todo_id}', ${!t.is_completed})">
+                        <div class="w-5 h-5 rounded border flex items-center justify-center text-xs ${t.is_completed ? 'bg-emerald-600 border-emerald-600 text-white' : 'border-gray-300'}">${t.is_completed ? '✓' : ''}</div>
+                        <span class="${t.is_completed ? 'line-through text-gray-400' : 'text-gray-700'}">${t.title}</span>
                     </div>
-                    <p class="text-gray-600 text-[11px] line-clamp-2 leading-relaxed">${doc.content}</p>
-                    <div class="text-[9px] text-gray-400 font-mono pt-1">${doc.date} · pgvector HNSW Indexed</div>
-                `;
-                container.appendChild(item);
-            });
-            saveState();
-        }
-
-        function openNewDocModal() {
-            document.getElementById('new-doc-modal').classList.remove('hidden');
-            document.getElementById('new-doc-modal').classList.add('flex');
-        }
-
-        function closeNewDocModal() {
-            document.getElementById('new-doc-modal').classList.add('hidden');
-            document.getElementById('new-doc-modal').classList.remove('flex');
-        }
-
-        async function saveNewDoc() {
-            const title = document.getElementById('doc-title-input').value.trim();
-            const cat = document.getElementById('doc-cat-input').value;
-            const content = document.getElementById('doc-content-input').value.trim();
-            const todayStr = new Date().toISOString().split('T')[0];
-
-            if (!title || !content) {
-                alert('문서 제목과 본문 내용을 모두 입력하세요.');
-                return;
-            }
-
-            if (isBackendOnline) {
-                try {
-                    const res = await fetch(`${API_BASE}/wiki/documents`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            title: title,
-                            category: cat,
-                            content: content
-                        })
-                    });
-                    if (res.ok) {
-                        const newDoc = await res.json();
-                        state.wikiDocs.unshift(newDoc);
-                        renderWikiDocs();
-                        closeNewDocModal();
-                        alert('✓ [FastAPI DB 연동] 새 WIKI 문서가 저장되었으며, 1536차원 벡터 임베딩 청크가 생성되어 RAG 색인에 실시간 추가되었습니다.');
-                        return;
-                    }
-                } catch (e) {
-                    console.warn('Backend doc create failed:', e);
-                }
-            }
-
-            state.wikiDocs.unshift({
-                id: `doc-${Date.now()}`,
-                title: title,
-                category: cat,
-                date: todayStr,
-                content: content
-            });
-
-            renderWikiDocs();
-            closeNewDocModal();
-            alert('✓ 새 WIKI 문서가 저장되었으며, 1536차원 벡터 임베딩 청크가 생성되어 RAG 색인에 추가되었습니다.');
-        }
-
-        // API Sandbox Filter & Interactive Testing
-        function filterApiCategory(cat) {
-            const items = document.querySelectorAll('.api-item');
-            items.forEach(item => {
-                if (cat === 'all' || item.classList.contains(`category-${cat}`)) {
-                    item.style.display = 'block';
-                } else {
-                    item.style.display = 'none';
-                }
+                    <button onclick="deleteTodo('${t.todo_id}')" class="text-gray-300 hover:text-red-500 font-bold">✕</button>
+                </div>`;
             });
         }
 
-        async function testApiSandbox(endpointKey) {
-            const targetPre = document.getElementById(`sandbox-res-${endpointKey}`);
-            if (!targetPre) return;
-
-            targetPre.classList.add('opacity-40');
-            const startTime = performance.now();
-
-            if (isBackendOnline) {
-                try {
-                    let endpointUrl = '';
-                    let reqOpt = { method: 'GET' };
-
-                    if (endpointKey === 'receipts_scan') {
-                        endpointUrl = `${API_BASE}/receipts/scan`;
-                        const fd = new FormData();
-                        fd.append('filename_override', 'sample_receipt.jpg');
-                        reqOpt = { method: 'POST', body: fd };
-                    } else if (endpointKey === 'finance_summary') {
-                        endpointUrl = `${API_BASE}/finance/summary`;
-                    } else if (endpointKey === 'llm_chat') {
-                        endpointUrl = `${API_BASE}/llm/chat`;
-                        reqOpt = {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ prompt: '이번달 지출 얼마야?' })
-                        };
-                    } else if (endpointKey === 'health') {
-                        endpointUrl = `${API_BASE}/health`;
-                    }
-
-                    if (endpointUrl) {
-                        const res = await fetch(endpointUrl, reqOpt);
-                        const data = await res.json();
-                        const latency = Math.round(performance.now() - startTime);
-                        targetPre.textContent = JSON.stringify(data, null, 2);
-                        targetPre.classList.remove('opacity-40');
-                        alert(`⚡ [실제 백엔드 API 호출 성공]\nEndpoint: ${endpointKey}\nStatus: ${res.status} OK\n실제 응답 지연시간: ${latency}ms`);
-                        return;
-                    }
-                } catch (e) {
-                    console.warn('Sandbox actual call failed, using mock:', e);
-                }
-            }
-
-            setTimeout(() => {
-                targetPre.classList.remove('opacity-40');
-                const latency = Math.round(performance.now() - startTime + 25);
-                alert(`⚡ [API Sandbox Test Success]\nEndpoint: ${endpointKey}\nStatus: 200 OK (Latency: ${latency}ms)`);
-            }, 300);
+        async function saveTodo() {
+            const title = document.getElementById('t-title').value.trim();
+            if (!title) return;
+            try {
+                const res = await fetch(`${API_BASE}/todos`, {
+                    method: 'POST', headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ user_id: selectedUserId, title })
+                });
+                if (res.ok) { closeModal('todo-modal'); loadUserData(); }
+            } catch(e) { console.warn(e); }
         }
 
-        // Web Audio Synthesizer for "Twinkle Twinkle Little Star"
-        let audioCtx = null;
-        let melodyInterval = null;
-
-        function toggleMusic() {
-            state.isPlayingMusic = !state.isPlayingMusic;
-            const btn = document.getElementById('music-play-btn');
-            btn.textContent = state.isPlayingMusic ? '⏸' : '▶';
-
-            if (state.isPlayingMusic) {
-                playLullabyMelody();
-            } else {
-                stopLullabyMelody();
-            }
+        async function toggleTodo(id, completed) {
+            await fetch(`${API_BASE}/todos/${id}`, { method: 'PUT', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ is_completed: completed }) });
+            loadUserData();
         }
 
-        function playLullabyMelody() {
-            if (!audioCtx) {
-                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-            }
-
-            // Twinkle Twinkle Notes (C4, G4, A4, F4, E4, D4)
-            const notes = [
-                261.63, 261.63, 392.00, 392.00, 440.00, 440.00, 392.00, 0,
-                349.23, 349.23, 329.63, 329.63, 293.66, 293.66, 261.63, 0
-            ];
-            let noteIdx = 0;
-
-            function playNote(freq) {
-                if (!freq || freq === 0) return;
-                const osc = audioCtx.createOscillator();
-                const gain = audioCtx.createGain();
-                osc.type = 'triangle';
-                osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
-
-                gain.gain.setValueAtTime(0.08, audioCtx.currentTime);
-                gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.4);
-
-                osc.connect(gain);
-                gain.connect(audioCtx.destination);
-
-                osc.start();
-                osc.stop(audioCtx.currentTime + 0.45);
-            }
-
-            melodyInterval = setInterval(() => {
-                if (!state.isPlayingMusic) {
-                    clearInterval(melodyInterval);
-                    return;
-                }
-                playNote(notes[noteIdx]);
-                noteIdx = (noteIdx + 1) % notes.length;
-            }, 500);
+        async function deleteTodo(id) {
+            await fetch(`${API_BASE}/todos/${id}`, { method: 'DELETE' });
+            loadUserData();
         }
 
-        function stopLullabyMelody() {
-            if (melodyInterval) clearInterval(melodyInterval);
-        }
+        function openTodoModal() { document.getElementById('todo-modal').classList.remove('hidden'); document.getElementById('todo-modal').classList.add('flex'); }
 
-        // Chart.js Setup (Growth & Finance Charts)
-        function initCharts() {
-            // 1. Child Growth Chart
-            const ctxGrowth = document.getElementById('growthChart').getContext('2d');
-            state.growthChartInstance = new Chart(ctxGrowth, {
-                type: 'line',
-                data: {
-                    labels: ['1월', '3월', '5월', '7월', '9월', '11월(현재)', '27년 1월(예측)'],
-                    datasets: [
-                        {
-                            label: '하늘 성장 지표 (신장 cm)',
-                            data: [112, 114, 116, 117, 119, 120, 122],
-                            borderColor: '#4299E1',
-                            backgroundColor: 'rgba(66, 153, 225, 0.1)',
-                            fill: true,
-                            tension: 0.3
-                        },
-                        {
-                            label: '바다 성장 지표 (신장 cm)',
-                            data: [92, 94, 95, 97, 98, 100, 102],
-                            borderColor: '#F6AD55',
-                            backgroundColor: 'rgba(246, 173, 85, 0.1)',
-                            fill: true,
-                            tension: 0.3
-                        }
-                    ]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: { legend: { position: 'top', labels: { font: { size: 11 } } } },
-                    scales: { y: { min: 85, max: 130 } }
-                }
+        // ---------- 가계부 ----------
+        function renderFinance() {
+            const container = document.getElementById('finance-table');
+            container.innerHTML = '';
+            const income = state.transactions.filter(t => t.type === 'INCOME').reduce((a,b) => a + b.amount, 0);
+            const expense = state.transactions.filter(t => t.type === 'EXPENSE').reduce((a,b) => a + b.amount, 0);
+            document.getElementById('kpi-income').textContent = '₩ ' + income.toLocaleString();
+            document.getElementById('kpi-expense').textContent = '₩ ' + expense.toLocaleString();
+            document.getElementById('kpi-savings').textContent = '₩ ' + (income - expense).toLocaleString();
+
+            if (state.transactions.length === 0) { container.innerHTML = '<tr><td colspan="6" class="p-4 empty-state">거래 내역이 없습니다.</td></tr>'; return; }
+
+            state.transactions.sort((a,b) => new Date(b.transaction_date) - new Date(a.transaction_date)).forEach(t => {
+                const isExp = t.type === 'EXPENSE';
+                container.innerHTML += `
+                <tr class="hover:bg-gray-50">
+                    <td class="p-2 font-mono text-gray-400">${t.transaction_date}</td>
+                    <td class="p-2 font-bold ${isExp ? 'text-red-500' : 'text-blue-600'}">${isExp ? '지출' : '수입'}</td>
+                    <td class="p-2 font-medium text-gray-800">${t.title}</td>
+                    <td class="p-2 text-[10px] bg-gray-100 text-gray-600 px-2 py-1 rounded">${t.category_code}</td>
+                    <td class="p-2 text-right font-bold font-mono ${isExp ? 'text-red-600' : 'text-blue-600'}">${isExp ? '-' : '+'}₩ ${t.amount.toLocaleString()}</td>
+                    <td class="p-2 text-center"><button onclick="deleteFinance('${t.transaction_id}')" class="text-gray-300 hover:text-red-500 font-bold">✕</button></td>
+                </tr>`;
             });
 
-            // 2. Expense Category Doughnut Chart
-            const ctxExpense = document.getElementById('expenseCategoryChart').getContext('2d');
-            state.expenseChartInstance = new Chart(ctxExpense, {
+            updateChart();
+        }
+
+        function updateChart() {
+            const ctx = document.getElementById('financeChart').getContext('2d');
+            const cats = {};
+            state.transactions.filter(t => t.type === 'EXPENSE').forEach(t => { cats[t.category_code] = (cats[t.category_code] || 0) + t.amount; });
+            if (financeChart) financeChart.destroy();
+            financeChart = new Chart(ctx, {
                 type: 'doughnut',
-                data: {
-                    labels: ['식비', '육아/교육', '주거/통신', '쇼핑/생활', '기타'],
-                    datasets: [{
-                        data: [780000, 650000, 480000, 320000, 205000],
-                        backgroundColor: ['#FC8181', '#63B3ED', '#F6AD55', '#68D391', '#CBD5E0'],
-                        borderWidth: 2
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: { legend: { position: 'right', labels: { font: { size: 10 } } } }
-                }
+                data: { labels: Object.keys(cats), datasets: [{ data: Object.values(cats), backgroundColor: ['#FC8181','#63B3ED','#F6AD55','#68D391','#CBD5E0','#F56565'] }] },
+                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { font: { size: 10 } } } } }
             });
+        }
 
-            // 3. Finance Trend Chart
-            const ctxTrend = document.getElementById('financeTrendChart').getContext('2d');
-            state.trendChartInstance = new Chart(ctxTrend, {
-                type: 'bar',
-                data: {
-                    labels: ['6월', '7월', '8월', '9월', '10월', '11월'],
-                    datasets: [
-                        {
-                            label: '수입',
-                            data: [5500000, 5600000, 5800000, 5700000, 5800000, 5800000],
-                            backgroundColor: '#4299E1',
-                            borderRadius: 6
-                        },
-                        {
-                            label: '지출',
-                            data: [2600000, 2900000, 3100000, 2450000, 2470000, 2435000],
-                            backgroundColor: '#FC8181',
-                            borderRadius: 6
-                        }
-                    ]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: { legend: { display: false } },
-                    scales: { y: { beginAtZero: true } }
-                }
-            });
+        async function saveFinance() {
+            const title = document.getElementById('f-title').value.trim();
+            const amount = parseInt(document.getElementById('f-amount').value);
+            if (!title || !amount) return alert('항목명과 금액을 입력하세요.');
+            try {
+                const res = await fetch(`${API_BASE}/finance/transactions`, {
+                    method: 'POST', headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ user_id: selectedUserId, type: document.getElementById('f-type').value, title, amount, category: document.getElementById('f-cat').value, payment_method: document.getElementById('f-method').value, transaction_date: new Date().toISOString().slice(0,10) })
+                });
+                if (res.ok) { closeModal('finance-modal'); loadUserData(); }
+            } catch(e) { console.warn(e); }
+        }
+
+        async function deleteFinance(id) {
+            await fetch(`${API_BASE}/finance/transactions/${id}`, { method: 'DELETE' });
+            loadUserData();
+        }
+
+        function openFinanceModal() {
+            document.getElementById('f-amount').value = '';
+            document.getElementById('f-title').value = '';
+            document.getElementById('finance-modal').classList.remove('hidden');
+            document.getElementById('finance-modal').classList.add('flex');
+        }
+
+        // ---------- 공통 ----------
+        function switchTab(tabId) {
+            document.querySelectorAll('main > section').forEach(s => s.classList.add('hidden'));
+            document.querySelectorAll('.tab-btn').forEach(b => { b.classList.remove('active', 'text-gray-900'); b.classList.add('text-gray-600'); });
+            document.getElementById(`view-${tabId}`).classList.remove('hidden');
+            document.getElementById(`tab-${tabId}`).classList.add('active', 'text-gray-900');
+            document.getElementById(`tab-${tabId}`).classList.remove('text-gray-600');
+        }
+
+        function closeModal(id) {
+            document.getElementById(id).classList.add('hidden');
+            document.getElementById(id).classList.remove('flex');
         }
     </script>
 </body>
-
 </html>
